@@ -1,0 +1,30 @@
+{
+	"ImportPath": "github.com/steveruckdashel/yahooapi",
+	"GoVersion": "go1.5",
+	"Deps": [
+		{
+			"ImportPath": "github.com/gorilla/context",
+			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+		},
+		{
+			"ImportPath": "github.com/gorilla/mux",
+			"Rev": "e444e69cbd2e2e3e0749a2f3c717cec491552bbf"
+		},
+		{
+			"ImportPath": "github.com/gorilla/securecookie",
+			"Rev": "5f171f42328bdd573211bb82bdee8f259c4c61ae"
+		},
+		{
+			"ImportPath": "github.com/gorilla/sessions",
+			"Rev": "13c86220d944600e7a6e3de6c87418896ccfbe77"
+		},
+		{
+			"ImportPath": "golang.org/x/net/context",
+			"Rev": "db8e4de5b2d6653f66aea53094624468caad15d2"
+		},
+		{
+			"ImportPath": "golang.org/x/oauth2",
+			"Rev": "ad0128250e8fba646a92ca9129716e523d63ef9f"
+		}
+	]
+}
