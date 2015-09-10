@@ -236,13 +236,13 @@ import (
 //     </fantasy_content>
 //
 type GameResource struct {
-	XMLName  xml.Name `xml:"game"`
-	Game_key string   `xml:"game_key"`
-	Game_id  string   `xml:"game_id"`
-	Namecode string   `xml:"namecode"`
-	Type     string   `xml:"type"`
-	Url      string   `xml:"url"`
-	Season   string   `xml:"season"`
+	XMLName  xml.Name `xml:"game",json:"-"`
+	Game_key string   `xml:"game_key",json:",omitempty"`
+	Game_id  string   `xml:"game_id",json:",omitempty"`
+	Namecode string   `xml:"namecode",json:",omitempty"`
+	Type     string   `xml:"type",json:",omitempty"`
+	Url      string   `xml:"url",json:",omitempty"`
+	Season   string   `xml:"season",json:",omitempty"`
 }
 
 /*
@@ -3530,6 +3530,7 @@ http://fantasysports.yahooapis.com/fantasy/v2/transaction/257.l.193.pt.1 - Pendi
 //       </transaction>
 //     </fantasy_content>
 func (y *YahooConfig) EditWaivers() {
+	panic("Not Implemented")
 	// PUT
 }
 
@@ -3548,6 +3549,7 @@ func (y *YahooConfig) EditWaivers() {
 //       </transaction>
 //     </fantasy_content>
 func (y *YahooConfig) AcceptTrade() {
+	panic("Not Implemented")
 	// PUT
 }
 
@@ -3563,6 +3565,7 @@ func (y *YahooConfig) AcceptTrade() {
 //       </transaction>
 //     </fantasy_content>
 func (y *YahooConfig) RejectTrade() {
+	panic("Not Implemented")
 	// PUT
 }
 
@@ -3590,10 +3593,12 @@ func (y *YahooConfig) RejectTrade() {
 //      </transaction>
 //    </fantasy_content>
 func (y *YahooConfig) AllowTrade() {
+	panic("Not Implemented")
 	// PUT
 
 }
 func (y *YahooConfig) DisallowTrade() {
+	panic("Not Implemented")
 	// PUT
 
 }
@@ -3614,6 +3619,7 @@ func (y *YahooConfig) DisallowTrade() {
 //       </transaction>
 //     </fantasy_content>
 func (y *YahooConfig) VoteDownTrade() {
+	panic("Not Implemented")
 	// PUT
 }
 
@@ -3625,9 +3631,11 @@ func (y *YahooConfig) VoteDownTrade() {
 // You can only DELETE transactions of the types waiver or pending_trade if the
 // pending trade has not yet been accepted.
 func (y *YahooConfig) DeleteWaiver() {
+	panic("Not Implemented")
 	// DELETE
 }
 func (y *YahooConfig) DeletePendingTrade() {
+	panic("Not Implemented")
 	// DELETE
 }
 
@@ -3681,6 +3689,7 @@ type TransactionCollection struct{}
 //
 //
 func (y *YahooConfig) GetTransactionCollection() *TransactionCollection {
+	panic("Not Implemented")
 	return nil
 }
 
@@ -3886,8 +3895,9 @@ func (y *YahooConfig) GetUserResource() *UserResource {
 //       </users>
 //     </fantasy_content>
 type UserCollection struct {
-	UserGuids []string `xml:"fantasy_content>users>user>guid"`
-	Body string `xml:"-"`
+	XMLName xml.Name `xml:"fantasy_content",json:"-"`
+	UserGuids []string `xml:"users>user>guid",json:",omitempty"`
+	Games []GameResource `xml:"users>user>games>game",json:",omitempty"`
 }
 
 // Retrieve User Collection
@@ -3917,9 +3927,12 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 	}
   client := y.conf.Client(oauth2.NoContext, tok)
 
-	var userCollection UserCollection
+	req, err := http.NewRequest("GET", "https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	res, err := client.Get("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1;out=leagues,teams")
+	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -3928,18 +3941,10 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
-
+	var userCollection UserCollection
 	if xml.Unmarshal(body, &userCollection); err != nil {
 		log.Fatal(err)
 	}
-	userCollection.Body = string(body)
-
-	// var animals []Animal
-	// err := json.Unmarshal(jsonBlob, &animals)
-	// if err != nil {
-	// 	fmt.Println("error:", err)
-	// }
-	// fmt.Printf("%+v", animals)
 
 	return &userCollection
 }
