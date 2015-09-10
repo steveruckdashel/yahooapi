@@ -4,13 +4,11 @@
 package yahooapi
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	// "encoding/json"
 	"encoding/xml"
-	"os"
 	"golang.org/x/oauth2"
 )
 
@@ -3879,8 +3877,16 @@ func (y *YahooConfig) GetUserResource() *UserResource {
 // With the Users API, you can obtain information from a collection of users
 // simultaneously. Each element beneath the Users Collection will be a User
 // Resource
+//
+//     <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1" time="22.95708656311ms" copyright="Data provided by Yahoo! and STATS, LLC" refresh_rate="31">
+//       <users count="1">
+//         <user>
+//           <guid>VJ....DM</guid>
+//         </user>
+//       </users>
+//     </fantasy_content>
 type UserCollection struct {
-	Body string
+	UserGuids []string `xml:"fantasy_content>users>user>guid"`
 }
 
 // Retrieve User Collection
@@ -3912,17 +3918,18 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 
 	var userCollection UserCollection
 
-	res, err := client.Get("http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1")
+	res, err := client.Get("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1")
 	if err != nil {
 		log.Fatal(err)
 	}
 	body, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Fprintf(os.Stderr, "%s", body)
-	userCollection.Body = string(body)
+	if xml.Unmarshal(body, &userCollection); err != nil {
+		log.Fatal(err)
+	}
+	res.Body.Close()
 
 	// var animals []Animal
 	// err := json.Unmarshal(jsonBlob, &animals)
