@@ -7,5 +7,5 @@ import (
 
 func (y *YahooConfig) UserCollectionHandler(w http.ResponseWriter, r *http.Request) {
   user := y.GetUserCollection(r)
-  io.WriteString(w, user.UserGuids[0])
+  io.WriteString(w, user.Body)
 }

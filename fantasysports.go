@@ -3887,6 +3887,7 @@ func (y *YahooConfig) GetUserResource() *UserResource {
 //     </fantasy_content>
 type UserCollection struct {
 	UserGuids []string `xml:"fantasy_content>users>user>guid"`
+	Body string `xml:"-"`
 }
 
 // Retrieve User Collection
@@ -3918,7 +3919,7 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 
 	var userCollection UserCollection
 
-	res, err := client.Get("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1")
+	res, err := client.Get("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1;out=leagues,teams")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -3926,10 +3927,12 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer res.Body.Close()
+
 	if xml.Unmarshal(body, &userCollection); err != nil {
 		log.Fatal(err)
 	}
-	res.Body.Close()
+	userCollection.Body = string(body)
 
 	// var animals []Animal
 	// err := json.Unmarshal(jsonBlob, &animals)
