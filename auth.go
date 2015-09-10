@@ -1,22 +1,24 @@
 package yahooapi
 
 import (
-	"github.com/steveruckdashel/yahooapi/Godeps/_workspace/src/github.com/gorilla/mux"
-	"github.com/steveruckdashel/yahooapi/Godeps/_workspace/src/github.com/gorilla/sessions"
-	"github.com/steveruckdashel/yahooapi/Godeps/_workspace/src/golang.org/x/oauth2"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"net/url"
+	"encoding/gob"
 )
 
-type AuthYahoo struct {
+type YahooConfig struct {
 	conf         *oauth2.Config
 	SessionStore sessions.Store
 	landing      string
 }
 
-func NewAuthYahoo(clientID, clientSecret string, scopes []string, hostName string, landing string, sessns sessions.Store) *AuthYahoo {
-	return &AuthYahoo{
+func NewYahooConfig(clientID, clientSecret string, scopes []string, hostName string, landing string, sessionStore sessions.Store) *YahooConfig {
+	gob.Register(&oauth2.Token{})
+
+	return &YahooConfig{
 		conf: &oauth2.Config{
 			ClientID:     clientID,
 			ClientSecret: clientSecret,
@@ -27,12 +29,12 @@ func NewAuthYahoo(clientID, clientSecret string, scopes []string, hostName strin
 			},
 			RedirectURL: hostName + "/yahoo/auth/callback",
 		},
-		SessionStore: sessns,
+		SessionStore: sessionStore,
 		landing:      landing,
 	}
 }
 
-func (a *AuthYahoo) AuthYahoo(w http.ResponseWriter, r *http.Request) {
+func (a *YahooConfig) AuthYahoo(w http.ResponseWriter, r *http.Request) {
 	session, err := a.SessionStore.Get(r, "session-name")
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -51,7 +53,7 @@ func (a *AuthYahoo) AuthYahoo(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, urlStrUnesc, 302)
 }
 
-func (a *AuthYahoo) AuthYahooCallback(w http.ResponseWriter, r *http.Request) {
+func (a *YahooConfig) AuthYahooCallback(w http.ResponseWriter, r *http.Request) {
 	session, err := a.SessionStore.Get(r, "session-name")
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -67,17 +69,11 @@ func (a *AuthYahoo) AuthYahooCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	session.Values["accessToken"] = tok.AccessToken
+	session.Values["token"] = tok
 	session.Values["xoauth_yahoo_guid"] = r.FormValue("xoauth_yahoo_guid")
 	session.Save(r, w)
 
 	// a.conf.Client(oauth2.NoContext, tok)
 
 	http.Redirect(w, r, a.landing, 302)
-}
-
-//r.Path("/auth").Handler(ProductsHandler)
-func (a *AuthYahoo) RegisterRoutes(r *mux.Router) {
-	r.HandleFunc("/yahoo/auth/", a.AuthYahoo)
-	r.HandleFunc("/yahoo/auth/callback", a.AuthYahooCallback)
 }

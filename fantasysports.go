@@ -11,17 +11,8 @@ import (
 	// "encoding/json"
 	"encoding/xml"
 	"os"
+	"golang.org/x/oauth2"
 )
-
-type YahooClient struct {
-	Client *http.Client
-}
-
-func NewYahooClient(yclient *http.Client) *YahooClient {
-	return &YahooClient{
-		Client: yclient,
-	}
-}
 
 // `json:"myName,omitempty"`
 // `json:"-"`
@@ -3540,7 +3531,7 @@ http://fantasysports.yahooapis.com/fantasy/v2/transaction/257.l.193.pt.1 - Pendi
 //         <faab_bid>20</faab_bid>
 //       </transaction>
 //     </fantasy_content>
-func (y *YahooClient) EditWaivers() {
+func (y *YahooConfig) EditWaivers() {
 	// PUT
 }
 
@@ -3558,7 +3549,7 @@ func (y *YahooClient) EditWaivers() {
 //         <trade_note>Dude, that is a totally fair trade.</trade_note>
 //       </transaction>
 //     </fantasy_content>
-func (y *YahooClient) AcceptTrade() {
+func (y *YahooConfig) AcceptTrade() {
 	// PUT
 }
 
@@ -3573,7 +3564,7 @@ func (y *YahooClient) AcceptTrade() {
 //         <trade_note>No way!</trade_note>
 //       </transaction>
 //     </fantasy_content>
-func (y *YahooClient) RejectTrade() {
+func (y *YahooConfig) RejectTrade() {
 	// PUT
 }
 
@@ -3600,11 +3591,11 @@ func (y *YahooClient) RejectTrade() {
 //        <action>disallow</action>
 //      </transaction>
 //    </fantasy_content>
-func (y *YahooClient) AllowTrade() {
+func (y *YahooConfig) AllowTrade() {
 	// PUT
 
 }
-func (y *YahooClient) DisallowTrade() {
+func (y *YahooConfig) DisallowTrade() {
 	// PUT
 
 }
@@ -3624,7 +3615,7 @@ func (y *YahooClient) DisallowTrade() {
 //         <voter_team_key>248.l.55438.t.2</voter_team_key>
 //       </transaction>
 //     </fantasy_content>
-func (y *YahooClient) VoteDownTrade() {
+func (y *YahooConfig) VoteDownTrade() {
 	// PUT
 }
 
@@ -3635,10 +3626,10 @@ func (y *YahooClient) VoteDownTrade() {
 //
 // You can only DELETE transactions of the types waiver or pending_trade if the
 // pending trade has not yet been accepted.
-func (y *YahooClient) DeleteWaiver() {
+func (y *YahooConfig) DeleteWaiver() {
 	// DELETE
 }
-func (y *YahooClient) DeletePendingTrade() {
+func (y *YahooConfig) DeletePendingTrade() {
 	// DELETE
 }
 
@@ -3691,7 +3682,7 @@ type TransactionCollection struct{}
 // transactions.
 //
 //
-func (y *YahooClient) GetTransactionCollection() *TransactionCollection {
+func (y *YahooConfig) GetTransactionCollection() *TransactionCollection {
 	return nil
 }
 
@@ -3878,8 +3869,9 @@ type UserResource struct {
 //              the specified games do not support team sub-resources.
 // URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/teams
 // Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/teams
-func (y *YahooClient) GetUserResource() *UserResource {
+func (y *YahooConfig) GetUserResource() *UserResource {
 	// GET
+	panic("Not Implemented")
 	return nil
 }
 
@@ -3904,10 +3896,19 @@ type UserCollection struct {
 // Multiple sub-resources can be extracted from users in the same URI using a format like:
 //     /users;use_login=1;out={sub_resource_1},{sub_resource_2}
 //     /users;field={field_name1},{field_name2}
-func (y *YahooClient) GetUserCollection() *UserCollection {
+func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+  tok := session.Values["token"].(oauth2.Token)
+  client := y.conf.Client(oauth2.NoContext, &tok)
+
 	var userCollection UserCollection
 
-	res, err := y.Client.Get("http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1")
+	res, err := client.Get("http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1")
 	if err != nil {
 		log.Fatal(err)
 	}
