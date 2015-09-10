@@ -69,7 +69,7 @@ func (a *YahooConfig) AuthYahooCallback(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		log.Fatal(err)
 	}
-	session.Values["token"] = tok
+	session.Values["token"] = *tok
 	session.Values["xoauth_yahoo_guid"] = r.FormValue("xoauth_yahoo_guid")
 	session.Save(r, w)
 

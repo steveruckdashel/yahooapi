@@ -3903,8 +3903,12 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 		return nil
 	}
 
-  tok := session.Values["token"].(oauth2.Token)
-  client := y.conf.Client(oauth2.NoContext, &tok)
+  tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+  client := y.conf.Client(oauth2.NoContext, tok)
 
 	var userCollection UserCollection
 
