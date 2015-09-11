@@ -1,12 +1,12 @@
 package yahooapi
 
 import (
+	"encoding/gob"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"log"
 	"net/http"
 	"net/url"
-	"encoding/gob"
 )
 
 type YahooConfig struct {

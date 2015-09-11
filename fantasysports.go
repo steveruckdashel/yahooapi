@@ -9,9 +9,9 @@ import (
 	"net/http"
 	// "encoding/json"
 	"encoding/xml"
-	"golang.org/x/oauth2"
-	"github.com/gorilla/mux"
 	"fmt"
+	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
 )
 
 // `json:"myName,omitempty"`
@@ -238,13 +238,15 @@ import (
 //     </fantasy_content>
 //
 type GameResource struct {
-	XMLName  xml.Name `xml:"game",json:"-"`
-	Game_key string   `xml:"game_key",json:",omitempty"`
-	Game_id  string   `xml:"game_id",json:",omitempty"`
-	Namecode string   `xml:"namecode",json:",omitempty"`
-	Type     string   `xml:"type",json:",omitempty"`
-	Url      string   `xml:"url",json:",omitempty"`
-	Season   string   `xml:"season",json:",omitempty"`
+	XMLName  xml.Name         `xml:"game",json:"-"`
+	Game_key string           `xml:"game_key",json:",omitempty"`
+	Game_id  string           `xml:"game_id",json:",omitempty"`
+	Namecode string           `xml:"namecode",json:",omitempty"`
+	Type     string           `xml:"type",json:",omitempty"`
+	Url      string           `xml:"url",json:",omitempty"`
+	Season   string           `xml:"season",json:",omitempty"`
+	Leagues  []LeagueResource `xml:"leagues>league",json:",omitempty"`
+	Teams    []TeamResource   `xml:"teams>team",json:",omitempty"`
 }
 
 /*
@@ -349,9 +351,6 @@ OR
 all teams for user: http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games/teams
 */
 
-
-
-
 // League resource
 //
 // Description
@@ -364,7 +363,40 @@ all teams for user: http://fantasysports.yahooapis.com/fantasy/v2/users;use_logi
 // the base of your URI by using the global ````. A particular user can only
 // retrieve data for private leagues of which they are a member, or for public
 // leagues.
-//
+type LeagueResource struct {
+	XMLName               xml.Name `xml:"league",json:"-"`
+	LeagueKey             string   `xml:"league_key",json:",omitempty"`
+	LeagueID              string   `xml:"league_id",json:",omitempty"`
+	Name                  string   `xml:"name",json:",omitempty"`
+	URL                   string   `xml:"url",json:",omitempty"`
+	Password              string   `xml:"password",json:",omitempty"`
+	LeageChatID           string   `xml:"league_chat_id",json:",omitempty"`
+	DraftStatus           string   `xml:"draft_status",json:",omitempty"`
+	NumberOfTeams         string   `xml:"num_teams",json:",omitempty"`
+	EditKey               string   `xml:"edit_key",json:",omitempty"`
+	WeeklyDeadline        string   `xml:"weekly_deadline",json:",omitempty"`
+	LeagueUpdateTimestamp string   `xml:"league_update_timestamp",json:",omitempty"`
+	ScoringType           string   `xml:"scoring_type",json:",omitempty"`
+	LeagueType            string   `xml:"league_type",json:",omitempty"`
+	Renew                 string   `xml:"renew",json:",omitempty"`
+	Renewed               string   `xml:"renewed",json:",omitempty"`
+	ShortInvitationURL    string   `xml:"short_invitation_url",json:",omitempty"`
+	IsProLeague           string   `xml:"is_pro_league",json:",omitempty"`
+	CurrentWeek           string   `xml:"current_week",json:",omitempty"`
+	StartWeek             string   `xml:"start_week",json:",omitempty"`
+	StartDate             string   `xml:"start_date",json:",omitempty"`
+	EndWeek               string   `xml:"end_week",json:",omitempty"`
+	EndDate               string   `xml:"end_date",json:",omitempty"`
+	GameCode              string   `xml:"game_code",json:",omitempty"`
+	Season                string   `xml:"season",json:",omitempty"`
+}
+
+type LeagueCollection struct {
+	XMLName xml.Name         `xml:"fantasy_content",json:"-"`
+	Leagues []LeagueResource `xml:"leagues>league",json:",omitempty"`
+	//Body string
+}
+
 // HTTP Operations Supported
 // GET
 //
@@ -1725,8 +1757,6 @@ all teams for user: http://fantasysports.yahooapis.com/fantasy/v2/users;use_logi
 //   </league>
 // </fantasy_content>
 
-
-
 // Leagues collection
 //
 // Description
@@ -1751,15 +1781,109 @@ all teams for user: http://fantasysports.yahooapis.com/fantasy/v2/users;use_logi
 //  OR
 //   /leagues;league_keys={league_key1},{league_key2};out={sub_resource_1},{sub_resource_2}
 
+// Team resource
+//
+// Description
+// The Team APIs allow you to retrieve information about a team within our
+// fantasy games. The team is the basic unit for keeping track of a roster of
+// players, and can be managed by either one or two managers (the second manager
+// being called a co-manager). With the Team APIs, you can obtain team-related
+// information, like the team name, managers, logos, stats and points, and
+// rosters for particular weeks. Teams only exist in the context of a particular
+// League, although you can request a Team Resource as the base of your URI by
+// using the global ````. A particular user can only retrieve data about a team
+// if that team is part of a private league of which the user is a member, or if
+// it’s in a public league.
+//
+// 					<teams count="1">
+// 						<team>
+// 							<team_key>348.l.900006.t.1</team_key>
+// 							<team_id>1</team_id>
+// 							<name>Steve's Team</name>
+// 							<is_owned_by_current_login>1</is_owned_by_current_login>
+// 							<url>
+// 							http://football.fantasysports.yahoo.com/f1/900006/1
+// 							</url>
+// 							<team_logos>
+// 							<team_logo>
+// 							<size>large</size>
+// 							<url>
+// 							  https://s.yimg.com/dh/ap/fantasy/nfl/img/icon_01_100.png
+// 							</url>
+// 							</team_logo>
+// 							</team_logos>
+// 							<waiver_priority>10</waiver_priority>
+// 							<number_of_moves>1</number_of_moves>
+// 							<number_of_trades>0</number_of_trades>
+// 							<roster_adds>
+// 							<coverage_type>week</coverage_type>
+// 							<coverage_value>1</coverage_value>
+// 							<value>0</value>
+// 							</roster_adds>
+// 							<league_scoring_type>head</league_scoring_type>
+// 							<managers>
+// 								<manager>
+// 									<manager_id>1</manager_id>
+// 									<nickname>Steve</nickname>
+// 									<guid>VJ...DM</guid>
+// 									<is_commissioner>1</is_commissioner>
+// 									<is_current_login>1</is_current_login>
+// 									<email>st...om</email>
+// 									<image_url>
+// 									https://s.yimg.com/dh/ap/social/profile/profile_b64.png
+// 									</image_url>
+// 								</manager>
+// 							</managers>
+// 						</team>
+// 					</teams>
+type TeamLogoResource struct {
+	XMLName xml.Name `xml:"team_logo",json:"-"`
+	Size    string   `xml:"size",json:",omitempty"`
+	URL     string   `xml:"url",json:",omitempty"`
+}
+
+type RosterAddsResource struct {
+	XMLName       xml.Name `xml:"roster_adds",json:"-"`
+	CoverageType  string   `xml:"coverage_type",json:",omitempty"`
+	CoverageValue string   `xml:"coverage_value",json:",omitempty"`
+	Value         string   `xml:"value",json:",omitempty"`
+}
+
+type ManagerResource struct {
+	XMLName        xml.Name `xml:"manager",json:"-"`
+	ManagerID      string   `xml:"manager_id",json:",omitempty"`
+	Nickname       string   `xml:"nickname",json:",omitempty"`
+	GUID           string   `xml:"guid",json:",omitempty"`
+	IsCommissioner string   `xml:"is_commissioner",json:",omitempty"`
+	IsCurrentLogin string   `xml:"is_current_login",json:",omitempty"`
+	Email          string   `xml:"email",json:",omitempty"`
+	ImageURL       string   `xml:"image_url",json:",omitempty"`
+}
+
+type TeamResource struct {
+	XMLName               xml.Name           `xml:"team",json:"-"`
+	TeamKey               string             `xml:"team_key",json:",omitempty"`
+	TeamID                string             `xml:"team_id",json:",omitempty"`
+	Name                  string             `xml:"name",json:",omitempty"`
+	IsOwnedByCurrentLogin string             `xml:"is_owned_by_current_login",json:",omitempty"`
+	URL                   string             `xml:"url",json:",omitempty"`
+	TeamLogos             []TeamLogoResource `xml:"team_logos>team_logo",omitempty"`
+	WaiverPriority        string             `xml:"waiver_priority",json:",omitempty"`
+	NumberOfMoves         string             `xml:"number_of_moves",json:",omitempty"`
+	NumberOfTrades        string             `xml:"number_of_trade",json:",omitempty"`
+	RosterAdds            RosterAddsResource `xml:"roster_adds",json:",omitempty"`
+	LeageScoringType      string             `xml:"league_scoring_type",json:",omitempty"`
+	Managers              []ManagerResource `xml:"managers>manager",json:",omitempty"`
+}
+
+type TeamCollection struct {
+	XMLName xml.Name       `xml:"fantasy_content",json:"-"`
+	teams   []TeamResource `xml:"teams>team",json:",omitempty"`
+	//Body string
+}
 
 /*
-Team resource¶
-
-Description¶
-
-The Team APIs allow you to retrieve information about a team within our fantasy games. The team is the basic unit for keeping track of a roster of players, and can be managed by either one or two managers (the second manager being called a co-manager). With the Team APIs, you can obtain team-related information, like the team name, managers, logos, stats and points, and rosters for particular weeks. Teams only exist in the context of a particular League, although you can request a Team Resource as the base of your URI by using the global ````. A particular user can only retrieve data about a team if that team is part of a private league of which the user is a member, or if it’s in a public league.
-
-HTTP Operations Supported¶
+HTTP Operations Supported
 
 GET
 URIs¶
@@ -3734,7 +3858,6 @@ type with team_key	waiver,pending_trade	You can only use these options when also
 count	Any integer greater than 0	/transactions;count=5
 */
 
-
 // POST
 // Using POST, players can be added and/or dropped from a team, or trades can be
 // proposed. The URI for POSTing to transactions collection is:
@@ -3770,7 +3893,6 @@ count	Any integer greater than 0	/transactions;count=5
 //         </player>
 //       </transaction>
 //     </fantasy_content>
-
 
 // The input XML format for a POST request to the transactions API for replacing
 // one player with another player in a team is:
@@ -3867,6 +3989,9 @@ count	Any integer greater than 0	/transactions;count=5
 // league). You may also cancel the trade.
 
 
+
+
+
 // User resource
 // With the User API, you can retrieve fantasy information for a particular
 // Yahoo! user. Most usefully, you can see which games a user is playing, and
@@ -3876,9 +4001,9 @@ count	Any integer greater than 0	/transactions;count=5
 // use_login flag, instead of trying to request a User resource directly from
 // the URI.
 type UserResource struct {
-	XMLName xml.Name `xml:"user",json:"-"`
-	UserGuids []string `xml:"guid",json:",omitempty"`
-	Games []GameResource `xml:"games>game",json:",omitempty"`
+	XMLName   xml.Name       `xml:"user",json:"-"`
+	UserGuids []string       `xml:"guid",json:",omitempty"`
+	Games     []GameResource `xml:"games>game",json:",omitempty"`
 }
 
 // Users collection
@@ -3894,9 +4019,8 @@ type UserResource struct {
 //       </users>
 //     </fantasy_content>
 type UserCollection struct {
-	XMLName xml.Name `xml:"fantasy_content",json:"-"`
-	Users []UserResource `xml:"users>user",json:",omitempty"`
-	Body string
+	XMLName xml.Name       `xml:"fantasy_content",json:"-"`
+	Users   []UserResource `xml:"users>user",json:",omitempty"`
 }
 
 // GetUserResource
@@ -3909,13 +4033,6 @@ type UserCollection struct {
 //   URI:
 //   Description:Fetch user information of the logged-in user.
 //   Sample:http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1
-//
-// Any sub-resource valid for a user is a valid sub-resource under the users collection.
-// Any sub-resource for a collection of users is extracted using a URI like:
-//     /users;use_login=1/{sub_resource}
-// Multiple sub-resources can be extracted from users in the same URI using a format like:
-//     /users;use_login=1;out={sub_resource_1},{sub_resource_2}
-//     /users;field={field_name1},{field_name2}
 //
 // Sub-resources
 // Name:
@@ -3930,12 +4047,12 @@ func (y *YahooConfig) GetUserCollectionGames(r *http.Request) *UserCollection {
 		return nil
 	}
 
-  tok, ok := session.Values["token"].(*oauth2.Token)
+	tok, ok := session.Values["token"].(*oauth2.Token)
 	if !ok {
 		log.Println("error deserializing token from session")
 		return nil
 	}
-  client := y.conf.Client(oauth2.NoContext, tok)
+	client := y.conf.Client(oauth2.NoContext, tok)
 
 	req, err := http.NewRequest("GET", "https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games", nil)
 	if err != nil {
@@ -3963,54 +4080,6 @@ func (y *YahooConfig) GetUserCollectionGames(r *http.Request) *UserCollection {
 // Description: Fetch leagues that the user belongs to in one or more games. The leagues will be scoped to the user. This will throw an error if any of the specified games do not support league sub-resources.
 // URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/leagues
 // Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/leagues
-//
-// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=348/leagues" time="51.609039306641ms" copyright="Data provided by Yahoo! and STATS, LLC" refresh_rate="31">
-// 	<users count="1">
-// 		<user>
-// 			<guid>VJ...DM</guid>
-// 			<games count="1">
-// 				<game>
-// 					<game_key>348</game_key>
-// 					<game_id>348</game_id>
-// 					<name>Football</name>
-// 					<code>nfl</code>
-// 					<type>full</type>
-// 					<url>http://football.fantasysports.yahoo.com/f1</url>
-// 					<season>2015</season>
-// 					<is_registration_over>0</is_registration_over>
-// 					<leagues count="1">
-// 						<league>
-// 							<league_key>348.l.900006</league_key>
-// 							<league_id>962366</league_id>
-// 							<name>Football League</name>
-// 							<url>http://football.fantasysports.yahoo.com/f1/900006</url>
-// 							<password/>
-// 							<league_chat_id>5q...is</league_chat_id>
-// 							<draft_status>postdraft</draft_status>
-// 							<num_teams>10</num_teams>
-// 							<edit_key>1</edit_key>
-// 							<weekly_deadline/>
-// 							<league_update_timestamp/>
-// 							<scoring_type>head</scoring_type>
-// 							<league_type>private</league_type>
-// 							<renew/>
-// 							<renewed/>
-// 							<short_invitation_url>https://yho.com/nfl?l=96...a3</short_invitation_url>
-// 							<is_pro_league>0</is_pro_league>
-// 							<current_week>1</current_week>
-// 							<start_week>1</start_week>
-// 							<start_date>2015-09-10</start_date>
-// 							<end_week>17</end_week>
-// 							<end_date>2016-01-03</end_date>
-// 							<game_code>nfl</game_code>
-// 							<season>2015</season>
-// 						</league>
-// 					</leagues>
-// 				</game>
-// 			</games>
-// 		</user>
-// 	</users>
-// </fantasy_content>
 func (y *YahooConfig) GetUserCollectionLeagues(r *http.Request) *UserCollection {
 	session, err := y.SessionStore.Get(r, "session-name")
 	if err != nil {
@@ -4018,12 +4087,12 @@ func (y *YahooConfig) GetUserCollectionLeagues(r *http.Request) *UserCollection 
 		return nil
 	}
 
-  tok, ok := session.Values["token"].(*oauth2.Token)
+	tok, ok := session.Values["token"].(*oauth2.Token)
 	if !ok {
 		log.Println("error deserializing token from session")
 		return nil
 	}
-  client := y.conf.Client(oauth2.NoContext, tok)
+	client := y.conf.Client(oauth2.NoContext, tok)
 
 	vars := mux.Vars(r)
 	game_keys := vars["game_keys"]
@@ -4046,11 +4115,9 @@ func (y *YahooConfig) GetUserCollectionLeagues(r *http.Request) *UserCollection 
 	if xml.Unmarshal(body, &userCollection); err != nil {
 		log.Fatal(err)
 	}
-	userCollection.Body = string(body)
 
 	return &userCollection
 }
-
 
 // Name:
 // Description: Fetch teams owned by the user in one or more games. The teams
@@ -4058,68 +4125,6 @@ func (y *YahooConfig) GetUserCollectionLeagues(r *http.Request) *UserCollection 
 //              the specified games do not support team sub-resources.
 // URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/teams
 // Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/teams
-//
-// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=348/teams" time="58.568000793457ms" copyright="Data provided by Yahoo! and STATS, LLC" refresh_rate="31">
-// 	<users count="1">
-// 		<user>
-// 			<guid>VJ...DM</guid>
-// 			<games count="1">
-// 				<game>
-// 					<game_key>348</game_key>
-// 					<game_id>348</game_id>
-// 					<name>Football</name>
-// 					<code>nfl</code>
-// 					<type>full</type>
-// 					<url>http://football.fantasysports.yahoo.com/f1</url>
-// 					<season>2015</season>
-// 					<is_registration_over>0</is_registration_over>
-// 					<teams count="1">
-// 						<team>
-// 							<team_key>348.l.900006.t.1</team_key>
-// 							<team_id>1</team_id>
-// 							<name>Steve's Team</name>
-// 							<is_owned_by_current_login>1</is_owned_by_current_login>
-// 							<url>
-// 							http://football.fantasysports.yahoo.com/f1/900006/1
-// 							</url>
-// 							<team_logos>
-// 							<team_logo>
-// 							<size>large</size>
-// 							<url>
-// 							  https://s.yimg.com/dh/ap/fantasy/nfl/img/icon_01_100.png
-// 							</url>
-// 							</team_logo>
-// 							</team_logos>
-// 							<waiver_priority>10</waiver_priority>
-// 							<number_of_moves>1</number_of_moves>
-// 							<number_of_trades>0</number_of_trades>
-// 							<roster_adds>
-// 							<coverage_type>week</coverage_type>
-// 							<coverage_value>1</coverage_value>
-// 							<value>0</value>
-// 							</roster_adds>
-// 							<league_scoring_type>head</league_scoring_type>
-// 							<managers>
-// 								<manager>
-// 									<manager_id>1</manager_id>
-// 									<nickname>Steve</nickname>
-// 									<guid>VJ...DM</guid>
-// 									<is_commissioner>1</is_commissioner>
-// 									<is_current_login>1</is_current_login>
-// 									<email>st...om</email>
-// 									<image_url>
-// 									https://s.yimg.com/dh/ap/social/profile/profile_b64.png
-// 									</image_url>
-// 								</manager>
-// 							</managers>
-// 						</team>
-// 					</teams>
-// 				</game>
-// 			</games>
-// 		</user>
-// 	</users>
-// </fantasy_content>
-//
 func (y *YahooConfig) GetUserCollectionTeams(r *http.Request) *UserCollection {
 	session, err := y.SessionStore.Get(r, "session-name")
 	if err != nil {
@@ -4127,12 +4132,12 @@ func (y *YahooConfig) GetUserCollectionTeams(r *http.Request) *UserCollection {
 		return nil
 	}
 
-  tok, ok := session.Values["token"].(*oauth2.Token)
+	tok, ok := session.Values["token"].(*oauth2.Token)
 	if !ok {
 		log.Println("error deserializing token from session")
 		return nil
 	}
-  client := y.conf.Client(oauth2.NoContext, tok)
+	client := y.conf.Client(oauth2.NoContext, tok)
 
 	vars := mux.Vars(r)
 	game_keys := vars["game_keys"]
@@ -4155,7 +4160,51 @@ func (y *YahooConfig) GetUserCollectionTeams(r *http.Request) *UserCollection {
 	if xml.Unmarshal(body, &userCollection); err != nil {
 		log.Fatal(err)
 	}
-	userCollection.Body = string(body)
+
+	return &userCollection
+}
+
+// Any sub-resource valid for a user is a valid sub-resource under the users collection.
+// Any sub-resource for a collection of users is extracted using a URI like:
+//     /users;use_login=1/{sub_resource}
+// Multiple sub-resources can be extracted from users in the same URI using a format like:
+//     /users;use_login=1;out={sub_resource_1},{sub_resource_2}
+//     /users;field={field_name1},{field_name2}
+func (y *YahooConfig) GetUserCollectionAll(r *http.Request) *UserCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+	tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+	client := y.conf.Client(oauth2.NoContext, tok)
+
+	vars := mux.Vars(r)
+	game_keys := vars["game_keys"]
+	url := fmt.Sprintf("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=%s;out=teams,leagues", game_keys)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	var userCollection UserCollection
+	if xml.Unmarshal(body, &userCollection); err != nil {
+		log.Fatal(err)
+	}
 
 	return &userCollection
 }
