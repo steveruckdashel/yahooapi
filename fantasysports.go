@@ -10,6 +10,8 @@ import (
 	// "encoding/json"
 	"encoding/xml"
 	"golang.org/x/oauth2"
+	"github.com/gorilla/mux"
+	"fmt"
 )
 
 // `json:"myName,omitempty"`
@@ -347,1386 +349,1408 @@ OR
 all teams for user: http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games/teams
 */
 
-/*
-League resource¶
 
-Description¶
 
-When users join a Fantasy Football, Baseball, Basketball, or Hockey draft and trade game, they are organized into leagues with a limited number of friends or other Yahoo! users, with each user managing a Team. With the League API, you can obtain the league related information, like the league name, the number of teams, the draft status, et cetera. Leagues only exist in the context of a particular Game, although you can request a League Resource as the base of your URI by using the global ````. A particular user can only retrieve data for private leagues of which they are a member, or for public leagues.
 
-HTTP Operations Supported¶
+// League resource
+//
+// Description
+// When users join a Fantasy Football, Baseball, Basketball, or Hockey draft and
+// trade game, they are organized into leagues with a limited number of friends
+// or other Yahoo! users, with each user managing a Team. With the League API,
+// you can obtain the league related information, like the league name, the
+// number of teams, the draft status, et cetera. Leagues only exist in the
+// context of a particular Game, although you can request a League Resource as
+// the base of your URI by using the global ````. A particular user can only
+// retrieve data for private leagues of which they are a member, or for public
+// leagues.
+//
+// HTTP Operations Supported
+// GET
+//
+// URIs
+// http://fantasysports.yahooapis.com/fantasy/v2/league/
+//
+// Any sub-resource under a league is extracted using a URI like:
+// http://fantasysports.yahooapis.com/fantasy/v2/league//
+//
+// Multiple sub-resources can be extracted from league in the same URI using a
+// format like:
+// http://fantasysports.yahooapis.com/fantasy/v2/league/;out=,{sub_resource_2}
+//
+// League key format
+// .l.{league_id}
+//
+// Example:pnfl.l.431 or 223.l.431
+//
+// Note
+// The separator between the game_key and league_id is a lower case L (not the
+// number 1).
+//
+// Sub-resources
+// Default sub-resource: metadata
+//
+// Name: metadata
+// Description: Includes league key, id, name, url, draft status, number of
+//              teams, and current week information.
+// URI: /fantasy/v2/league//metadata
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431
+//
+// Name: settings
+// Description: League settings. For instance, draft type, scoring type, roster
+//              positions, stat categories and modifiers, divisions.
+// URI: /fantasy/v2/league//settings
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings
+//
+// Name: standings
+// Description: Ranking of teams within the league. Accepts Teams as a sub-
+//              resource, and includes team_standings data by default beneath
+//              the teams
+// URI: /fantasy/v2/league//standings
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings
+//
+// Name: scoreboard
+// Description: League scoreboard. Accepts Matchups as a sub-resource, which in
+//              turn accept Teams as a sub-resource. Includes team_stats data by
+//              default.
+// URI: /fantasy/v2/league//scoreboard              Scoreboard for current week
+//      /fantasy/v2/league//scoreboard;week={week}  Scoreboard for a particular
+//                                                  week
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard;week=2
+//
+// Name:
+// Description: All teams in the league.
+// URI: /fantasy/v2/league//teams
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/teams
+//
+// Name:
+// Description: The league’s eligible players.
+// URI: /fantasy/v2/league//players
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/players
+//
+// Name: draftresults
+// Description: Draft results for all teams in the league.
+// URI: /fantasy/v2/league//draftresults
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/draftresults
+//
+// Name:
+// Description: League transactions – adds, drops, and trades.
+// URI: /fantasy/v2/league//transactions
+// Sample: http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/transactions
+//
+//
+// Sample XML
+// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431
+// <?xml version="1.0" encoding="UTF-8"?>
+// <fantasy_content xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431" xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" time="181.80584907532ms" copyright="Data provided by Yahoo! and STATS, LLC" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng">
+//   <league>
+//     <league_key>223.l.431</league_key>
+//     <league_id>431</league_id>
+//     <name>Y! Friends and Family League</name>
+//     <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
+//     <draft_status>postdraft</draft_status>
+//     <num_teams>14</num_teams>
+//     <edit_key>17</edit_key>
+//     <weekly_deadline/>
+//     <league_update_timestamp>1262595518</league_update_timestamp>
+//     <scoring_type>head</scoring_type>
+//     <current_week>16</current_week>
+//     <start_week>1</start_week>
+//     <end_week>16</end_week>
+//     <is_finished>1</is_finished>
+//   </league>
+// </fantasy_content>
+//
+// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings
+// <?xml version="1.0" encoding="UTF-8"?>
+// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings" time="86.472988128662ms" copyright="Data provided by Yahoo! and STATS, LLC">
+//   <league>
+//     <league_key>223.l.431</league_key>
+//     <league_id>431</league_id>
+//     <name>Y! Friends and Family League</name>
+//     <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
+//     <draft_status>postdraft</draft_status>
+//     <num_teams>14</num_teams>
+//     <edit_key>17</edit_key>
+//     <weekly_deadline/>
+//     <league_update_timestamp>1262595518</league_update_timestamp>
+//     <scoring_type>head</scoring_type>
+//     <current_week>16</current_week>
+//     <start_week>1</start_week>
+//     <end_week>16</end_week>
+//     <is_finished>1</is_finished>
+//     <settings>
+//       <draft_type>live</draft_type>
+//       <scoring_type>head</scoring_type>
+//       <uses_playoff>1</uses_playoff>
+//       <playoff_start_week>14</playoff_start_week>
+//       <uses_playoff_reseeding>0</uses_playoff_reseeding>
+//       <uses_lock_eliminated_teams>0</uses_lock_eliminated_teams>
+//       <uses_faab>1</uses_faab>
+//       <trade_end_date>2009-11-27</trade_end_date>
+//       <trade_ratify_type>commish</trade_ratify_type>
+//       <trade_reject_time>0</trade_reject_time>
+//       <roster_positions>
+//         <roster_position>
+//           <position>QB</position>
+//           <count>1</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>WR</position>
+//           <count>3</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>RB</position>
+//           <count>2</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>TE</position>
+//           <count>1</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>W/R/T</position>
+//           <count>1</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>K</position>
+//           <count>1</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>DEF</position>
+//           <count>1</count>
+//         </roster_position>
+//         <roster_position>
+//           <position>BN</position>
+//           <count>4</count>
+//         </roster_position>
+//       </roster_positions>
+//       <stat_categories>
+//         <stats>
+//           <stat>
+//             <stat_id>4</stat_id>
+//             <enabled>1</enabled>
+//             <name>Passing Yards</name>
+//             <display_name>Pass Yds</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>5</stat_id>
+//             <enabled>1</enabled>
+//             <name>Passing Touchdowns</name>
+//             <display_name>Pass TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>6</stat_id>
+//             <enabled>1</enabled>
+//             <name>Interceptions</name>
+//             <display_name>Int</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>9</stat_id>
+//             <enabled>1</enabled>
+//             <name>Rushing Yards</name>
+//             <display_name>Rush Yds</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>10</stat_id>
+//             <enabled>1</enabled>
+//             <name>Rushing Touchdowns</name>
+//             <display_name>Rush TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>11</stat_id>
+//             <enabled>1</enabled>
+//             <name>Receptions</name>
+//             <display_name>Rec</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>12</stat_id>
+//             <enabled>1</enabled>
+//             <name>Reception Yards</name>
+//             <display_name>Rec Yds</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>13</stat_id>
+//             <enabled>1</enabled>
+//             <name>Reception Touchdowns</name>
+//             <display_name>Rec TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>15</stat_id>
+//             <enabled>1</enabled>
+//             <name>Return Touchdowns</name>
+//             <display_name>Ret TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>16</stat_id>
+//             <enabled>1</enabled>
+//             <name>2-Point Conversions</name>
+//             <display_name>2-PT</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>18</stat_id>
+//             <enabled>1</enabled>
+//             <name>Fumbles Lost</name>
+//             <display_name>Fum Lost</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>57</stat_id>
+//             <enabled>1</enabled>
+//             <name>Offensive Fumble Return TD</name>
+//             <display_name>Fum Ret TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>O</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>19</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals 0-19 Yards</name>
+//             <display_name>FG 0-19</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>20</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals 20-29 Yards</name>
+//             <display_name>FG 20-29</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>21</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals 30-39 Yards</name>
+//             <display_name>FG 30-39</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>22</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals 40-49 Yards</name>
+//             <display_name>FG 40-49</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>23</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals 50+ Yards</name>
+//             <display_name>FG 50+</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>24</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals Missed 0-19 Yards</name>
+//             <display_name>FGM 0-19</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>25</stat_id>
+//             <enabled>1</enabled>
+//             <name>Field Goals Missed 20-29 Yards</name>
+//             <display_name>FGM 20-29</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>29</stat_id>
+//             <enabled>1</enabled>
+//             <name>Point After Attempt Made</name>
+//             <display_name>PAT Made</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>30</stat_id>
+//             <enabled>1</enabled>
+//             <name>Point After Attempt Missed</name>
+//             <display_name>PAT Miss</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>K</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>31</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed</name>
+//             <display_name>Pts Allow</display_name>
+//             <sort_order>0</sort_order>
+//             <position_type>DT</position_type>
+//             <is_only_display_stat>1</is_only_display_stat>
+//           </stat>
+//           <stat>
+//             <stat_id>32</stat_id>
+//             <enabled>1</enabled>
+//             <name>Sack</name>
+//             <display_name>Sack</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>33</stat_id>
+//             <enabled>1</enabled>
+//             <name>Interception</name>
+//             <display_name>Int</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>34</stat_id>
+//             <enabled>1</enabled>
+//             <name>Fumble Recovery</name>
+//             <display_name>Fum Rec</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>35</stat_id>
+//             <enabled>1</enabled>
+//             <name>Touchdown</name>
+//             <display_name>TD</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>36</stat_id>
+//             <enabled>1</enabled>
+//             <name>Safety</name>
+//             <display_name>Safe</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>37</stat_id>
+//             <enabled>1</enabled>
+//             <name>Block Kick</name>
+//             <display_name>Blk Kick</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>50</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 0 points</name>
+//             <display_name>Pts Allow 0</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>51</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 1-6 points</name>
+//             <display_name>Pts Allow 1-6</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>52</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 7-13 points</name>
+//             <display_name>Pts Allow 7-13</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>53</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 14-20 points</name>
+//             <display_name>Pts Allow 14-20</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>54</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 21-27 points</name>
+//             <display_name>Pts Allow 21-27</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>55</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 28-34 points</name>
+//             <display_name>Pts Allow 28-34</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//           <stat>
+//             <stat_id>56</stat_id>
+//             <enabled>1</enabled>
+//             <name>Points Allowed 35+ points</name>
+//             <display_name>Pts Allow 35+</display_name>
+//             <sort_order>1</sort_order>
+//             <position_type>DT</position_type>
+//           </stat>
+//         </stats>
+//       </stat_categories>
+//       <stat_modifiers>
+//         <stats>
+//           <stat>
+//             <stat_id>4</stat_id>
+//             <value>0.04</value>
+//           </stat>
+//           <stat>
+//             <stat_id>5</stat_id>
+//             <value>4</value>
+//           </stat>
+//           <stat>
+//             <stat_id>6</stat_id>
+//             <value>-1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>9</stat_id>
+//             <value>0.1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>10</stat_id>
+//             <value>6</value>
+//           </stat>
+//           <stat>
+//             <stat_id>11</stat_id>
+//             <value>.75</value>
+//           </stat>
+//           <stat>
+//             <stat_id>12</stat_id>
+//             <value>0.1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>13</stat_id>
+//             <value>6</value>
+//           </stat>
+//           <stat>
+//             <stat_id>15</stat_id>
+//             <value>6</value>
+//           </stat>
+//           <stat>
+//             <stat_id>16</stat_id>
+//             <value>2</value>
+//           </stat>
+//           <stat>
+//             <stat_id>18</stat_id>
+//             <value>-1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>57</stat_id>
+//             <value>6</value>
+//           </stat>
+//           <stat>
+//             <stat_id>19</stat_id>
+//             <value>3</value>
+//           </stat>
+//           <stat>
+//             <stat_id>20</stat_id>
+//             <value>3</value>
+//           </stat>
+//           <stat>
+//             <stat_id>21</stat_id>
+//             <value>3</value>
+//           </stat>
+//           <stat>
+//             <stat_id>22</stat_id>
+//             <value>4</value>
+//           </stat>
+//           <stat>
+//             <stat_id>23</stat_id>
+//             <value>5</value>
+//           </stat>
+//           <stat>
+//             <stat_id>24</stat_id>
+//             <value>-3</value>
+//           </stat>
+//           <stat>
+//             <stat_id>25</stat_id>
+//             <value>-1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>29</stat_id>
+//             <value>1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>30</stat_id>
+//             <value>-.5</value>
+//           </stat>
+//           <stat>
+//             <stat_id>32</stat_id>
+//             <value>1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>33</stat_id>
+//             <value>2</value>
+//           </stat>
+//           <stat>
+//             <stat_id>34</stat_id>
+//             <value>2</value>
+//           </stat>
+//           <stat>
+//             <stat_id>35</stat_id>
+//             <value>6</value>
+//           </stat>
+//           <stat>
+//             <stat_id>36</stat_id>
+//             <value>2</value>
+//           </stat>
+//           <stat>
+//             <stat_id>37</stat_id>
+//             <value>2</value>
+//           </stat>
+//           <stat>
+//             <stat_id>50</stat_id>
+//             <value>10</value>
+//           </stat>
+//           <stat>
+//             <stat_id>51</stat_id>
+//             <value>7</value>
+//           </stat>
+//           <stat>
+//             <stat_id>52</stat_id>
+//             <value>4</value>
+//           </stat>
+//           <stat>
+//             <stat_id>53</stat_id>
+//             <value>1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>54</stat_id>
+//             <value>0</value>
+//           </stat>
+//           <stat>
+//             <stat_id>55</stat_id>
+//             <value>-1</value>
+//           </stat>
+//           <stat>
+//             <stat_id>56</stat_id>
+//             <value>-4</value>
+//           </stat>
+//         </stats>
+//       </stat_modifiers>
+//       <divisions>
+//         <division>
+//           <division_id>1</division_id>
+//           <name>Family</name>
+//         </division>
+//         <division>
+//           <division_id>2</division_id>
+//           <name>Friends</name>
+//         </division>
+//       </divisions>
+//     </settings>
+//   </league>
+// </fantasy_content>
+//
+// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings
+// <?xml version="1.0" encoding="UTF-8"?>
+// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings" time="201.46489143372ms" copyright="Data provided by Yahoo! and STATS, LLC">
+//   <league>
+//     <league_key>223.l.431</league_key>
+//     <league_id>431</league_id>
+//     <name>Y! Friends and Family League</name>
+//     <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
+//     <draft_status>postdraft</draft_status>
+//     <num_teams>14</num_teams>
+//     <edit_key>17</edit_key>
+//     <weekly_deadline/>
+//     <league_update_timestamp>1262595518</league_update_timestamp>
+//     <scoring_type>head</scoring_type>
+//     <current_week>16</current_week>
+//     <start_week>1</start_week>
+//     <end_week>16</end_week>
+//     <is_finished>1</is_finished>
+//     <standings>
+//       <teams count="14">
+//         <team>
+//           <team_key>223.l.431.t.10</team_key>
+//           <team_id>10</team_id>
+//           <name>Gehlken</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/10</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/4b978f0ci2432zws140sp2/imXqmYo8cq3NxEFtQB4wgAs-/6/tn48.jpeg?ciA8DVOBMH.UXGXk</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>0</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>5</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>4LAITFUXFASDNAXFWUOHWNU3BY</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1682.33</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>1</rank>
+//             <outcome_totals>
+//               <wins>9</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//               <percentage>.692</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>5</wins>
+//               <losses>1</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.5</team_key>
+//           <team_id>5</team_id>
+//           <name>RotoExperts</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/5</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/49be42a6i26e5zul3re3/d2x_9_UweKP95SJZ_Hwnk2Rl/2/tn48.jpg?ciA8DVOBIRa6b7wq</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>1</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>12</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>RW3ELDFMOFTES2EUAWQVCPPN7E</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1764.09</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>2</rank>
+//             <outcome_totals>
+//               <wins>9</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//               <percentage>.692</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>4</wins>
+//               <losses>2</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.8</team_key>
+//           <team_id>8</team_id>
+//           <name>Y! - Pianowski</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/8</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>0</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>6</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1569.48</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>3</rank>
+//             <outcome_totals>
+//               <wins>8</wins>
+//               <losses>5</losses>
+//               <ties>0</ties>
+//               <percentage>.615</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>4</wins>
+//               <losses>2</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.12</team_key>
+//           <team_id>12</team_id>
+//           <name>Y! - Behrens</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/12</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://lookup.avatars.yahoo.com/images?yid=abehrens53&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>0</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>3</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>E2KS77CDQPACRTSBCYPOFFW6AI</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1652.27</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>4</rank>
+//             <outcome_totals>
+//               <wins>8</wins>
+//               <losses>5</losses>
+//               <ties>0</ties>
+//               <percentage>.615</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>5</wins>
+//               <losses>1</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.4</team_key>
+//           <team_id>4</team_id>
+//           <name>Salfino-Comcast/NESN</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/4</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/4d8a517fi1b71zul1re3/ypdMGIA8cbVafvybuj2J.Jg-/2/tn48.jpg?ciA8DVOB5bipYD0R</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>0</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>9</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>PDLVXDDVXK2FRDI3FHRSS74F2U</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1621.98</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>5</rank>
+//             <outcome_totals>
+//               <wins>7</wins>
+//               <losses>6</losses>
+//               <ties>0</ties>
+//               <percentage>.538</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>3</wins>
+//               <losses>3</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.11</team_key>
+//           <team_id>11</team_id>
+//           <name>FantasyGuru.com-Hans</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/11</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://lookup.avatars.yahoo.com/images?yid=fantasygurudotcom&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>1</faab_balance>
+//           <clinched_playoffs>1</clinched_playoffs>
+//           <managers>
+//             <manager>
+//               <manager_id>4</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>B7IJFDI5UUTN3AQ2F7ZEA4BDU4</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1469.00</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>6</rank>
+//             <outcome_totals>
+//               <wins>7</wins>
+//               <losses>6</losses>
+//               <ties>0</ties>
+//               <percentage>.538</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>2</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.1</team_key>
+//           <team_id>1</team_id>
+//           <name>PFW - Blunda</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/1</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_01_48.gif</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>22</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>13</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>XNAXQZRDZPJ3RVFMY7ZTSWEFLU</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1461.71</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>7</rank>
+//             <outcome_totals>
+//               <wins>7</wins>
+//               <losses>6</losses>
+//               <ties>0</ties>
+//               <percentage>.538</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>3</wins>
+//               <losses>3</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.2</team_key>
+//           <team_id>2</team_id>
+//           <name>Y! - Evans</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/2</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/4a68b2d6i2663zul3re3/HYebAP0zcqEPfMp3gOK8Mmbv/4/tn48.jpg?ciA8DVOBzMjxdtsK</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>35</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>8</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>RV2NLFT5LDNKUDOFSWSHIDINY4</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1512.53</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>8</rank>
+//             <outcome_totals>
+//               <wins>6</wins>
+//               <losses>7</losses>
+//               <ties>0</ties>
+//               <percentage>.462</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>2</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.13</team_key>
+//           <team_id>13</team_id>
+//           <name>Erickson - RotoWire</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/13</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://lookup.avatars.yahoo.com/images?yid=jeff_rotonews&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>17</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>11</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>SB4Y5HVVUKMCTKZFQCXHIZ222E</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1484.56</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>9</rank>
+//             <outcome_totals>
+//               <wins>6</wins>
+//               <losses>7</losses>
+//               <ties>0</ties>
+//               <percentage>.462</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>3</wins>
+//               <losses>3</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.9</team_key>
+//           <team_id>9</team_id>
+//           <name>Y! - Funston</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/9</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://lookup.avatars.yahoo.com/images?yid=brandoanf1&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>10</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>1</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>3H7IQ3F2742K2ODHSJK5YXL23E</guid>
+//               <is_commissioner>1</is_commissioner>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1430.24</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>10</rank>
+//             <outcome_totals>
+//               <wins>6</wins>
+//               <losses>7</losses>
+//               <ties>0</ties>
+//               <percentage>.462</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>2</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.7</team_key>
+//           <team_id>7</team_id>
+//           <name>RotoWire_Liss</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/7</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>68</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>7</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>4BDB5LIG3IFVROH7SRBX44LBZM</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1424.56</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>11</rank>
+//             <outcome_totals>
+//               <wins>6</wins>
+//               <losses>7</losses>
+//               <ties>0</ties>
+//               <percentage>.462</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>3</wins>
+//               <losses>3</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.3</team_key>
+//           <team_id>3</team_id>
+//           <name>RotoWire - Del Don</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/3</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_05_48.gif</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>2</division_id>
+//           <faab_balance>0</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>10</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>4A5KVYHC7ZSEGOBFHFSO5Q64VA</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1366.89</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>12</rank>
+//             <outcome_totals>
+//               <wins>6</wins>
+//               <losses>7</losses>
+//               <ties>0</ties>
+//               <percentage>.462</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>3</wins>
+//               <losses>3</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.6</team_key>
+//           <team_id>6</team_id>
+//           <name>Y! - Romig</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/6</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/49b954dci229az/IJtbcRQjdKtd_DMoStSK/103/tn48.jpg?ciA8DVOB2WQ2Fk4F</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>0</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>2</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>FS5M5LOFJRKVJNRIWG36ZUF7IQ</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1370.16</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>13</rank>
+//             <outcome_totals>
+//               <wins>5</wins>
+//               <losses>8</losses>
+//               <ties>0</ties>
+//               <percentage>.385</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>2</wins>
+//               <losses>4</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//         <team>
+//           <team_key>223.l.431.t.14</team_key>
+//           <team_id>14</team_id>
+//           <name>Y! - Chase</name>
+//           <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/14</url>
+//           <team_logos>
+//             <team_logo>
+//               <size>medium</size>
+//               <url>http://a323.yahoofs.com/coreid/4a7a23a5icfazul2re3/2fIcrk8yc7QS3j_ei4PULEbpFA--/1/tn48.jpg?ciA8DVOBcEQk3vWZ</url>
+//             </team_logo>
+//           </team_logos>
+//           <division_id>1</division_id>
+//           <faab_balance>92</faab_balance>
+//           <managers>
+//             <manager>
+//               <manager_id>14</manager_id>
+//               <nickname>-- hidden --</nickname>
+//               <guid>7CSOKBMM74MGFMSWHWJMM4FBQ4</guid>
+//             </manager>
+//           </managers>
+//           <team_points>
+//             <coverage_type>season</coverage_type>
+//             <season>2009</season>
+//             <total>1237.47</total>
+//           </team_points>
+//           <team_standings>
+//             <rank>14</rank>
+//             <outcome_totals>
+//               <wins>1</wins>
+//               <losses>12</losses>
+//               <ties>0</ties>
+//               <percentage>.077</percentage>
+//             </outcome_totals>
+//             <divisional_outcome_totals>
+//               <wins>1</wins>
+//               <losses>5</losses>
+//               <ties>0</ties>
+//             </divisional_outcome_totals>
+//           </team_standings>
+//         </team>
+//       </teams>
+//     </standings>
+//   </league>
+// </fantasy_content>
+//
+// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard
+// <?xml version="1.0" encoding="UTF-8"?>
+// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard" time="148.71311187744ms" copyright="Data provided by Yahoo! and STATS, LLC">
+//   <league>
+//     <league_key>223.l.431</league_key>
+//     <league_id>431</league_id>
+//     <name>Y! Friends and Family League</name>
+//     <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
+//     <draft_status>postdraft</draft_status>
+//     <num_teams>14</num_teams>
+//     <edit_key>17</edit_key>
+//     <weekly_deadline/>
+//     <league_update_timestamp>1262595518</league_update_timestamp>
+//     <scoring_type>head</scoring_type>
+//     <current_week>16</current_week>
+//     <start_week>1</start_week>
+//     <end_week>16</end_week>
+//     <is_finished>1</is_finished>
+//     <scoreboard>
+//       <week>16</week>
+//       <matchups count="2">
+//         <matchup>
+//           <week>16</week>
+//           <status>postevent</status>
+//           <is_tied>0</is_tied>
+//           <winner_team_key>223.l.431.t.10</winner_team_key>
+//           <teams count="2">
+//             <team>
+//               <team_key>223.l.431.t.5</team_key>
+//               <team_id>5</team_id>
+//               <name>RotoExperts</name>
+//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/5</url>
+//               <team_logos>
+//                 <team_logo>
+//                   <size>medium</size>
+//                   <url>http://a323.yahoofs.com/coreid/49be42a6i26e5zul3re3/d2x_9_UweKP95SJZ_Hwnk2Rl/2/tn48.jpg?ciA8DVOBIRa6b7wq</url>
+//                 </team_logo>
+//               </team_logos>
+//               <division_id>2</division_id>
+//               <faab_balance>1</faab_balance>
+//               <clinched_playoffs>1</clinched_playoffs>
+//               <managers>
+//                 <manager>
+//                   <manager_id>12</manager_id>
+//                   <nickname>-- hidden --</nickname>
+//                   <guid>RW3ELDFMOFTES2EUAWQVCPPN7E</guid>
+//                 </manager>
+//               </managers>
+//               <team_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>135.22</total>
+//               </team_points>
+//               <team_projected_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>142.81</total>
+//               </team_projected_points>
+//             </team>
+//             <team>
+//               <team_key>223.l.431.t.10</team_key>
+//               <team_id>10</team_id>
+//               <name>Gehlken</name>
+//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/10</url>
+//               <team_logos>
+//                 <team_logo>
+//                   <size>medium</size>
+//                   <url>http://a323.yahoofs.com/coreid/4b978f0ci2432zws140sp2/imXqmYo8cq3NxEFtQB4wgAs-/6/tn48.jpeg?ciA8DVOBMH.UXGXk</url>
+//                 </team_logo>
+//               </team_logos>
+//               <division_id>1</division_id>
+//               <faab_balance>0</faab_balance>
+//               <clinched_playoffs>1</clinched_playoffs>
+//               <managers>
+//                 <manager>
+//                   <manager_id>5</manager_id>
+//                   <nickname>-- hidden --</nickname>
+//                   <guid>4LAITFUXFASDNAXFWUOHWNU3BY</guid>
+//                 </manager>
+//               </managers>
+//               <team_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>137.86</total>
+//               </team_points>
+//               <team_projected_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>133.57</total>
+//               </team_projected_points>
+//             </team>
+//           </teams>
+//         </matchup>
+//         <matchup>
+//           <week>16</week>
+//           <status>postevent</status>
+//           <is_tied>0</is_tied>
+//           <winner_team_key>223.l.431.t.8</winner_team_key>
+//           <teams count="2">
+//             <team>
+//               <team_key>223.l.431.t.8</team_key>
+//               <team_id>8</team_id>
+//               <name>Y! - Pianowski</name>
+//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/8</url>
+//               <team_logos>
+//                 <team_logo>
+//                   <size>medium</size>
+//                   <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
+//                 </team_logo>
+//               </team_logos>
+//               <division_id>1</division_id>
+//               <faab_balance>0</faab_balance>
+//               <clinched_playoffs>1</clinched_playoffs>
+//               <managers>
+//                 <manager>
+//                   <manager_id>6</manager_id>
+//                   <nickname>-- hidden --</nickname>
+//                   <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
+//                 </manager>
+//               </managers>
+//               <team_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>103.39</total>
+//               </team_points>
+//               <team_projected_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>104.17</total>
+//               </team_projected_points>
+//             </team>
+//             <team>
+//               <team_key>223.l.431.t.12</team_key>
+//               <team_id>12</team_id>
+//               <name>Y! - Behrens</name>
+//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/12</url>
+//               <team_logos>
+//                 <team_logo>
+//                   <size>medium</size>
+//                   <url>http://lookup.avatars.yahoo.com/images?yid=abehrens53&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
+//                 </team_logo>
+//               </team_logos>
+//               <division_id>1</division_id>
+//               <faab_balance>0</faab_balance>
+//               <clinched_playoffs>1</clinched_playoffs>
+//               <managers>
+//                 <manager>
+//                   <manager_id>3</manager_id>
+//                   <nickname>-- hidden --</nickname>
+//                   <guid>E2KS77CDQPACRTSBCYPOFFW6AI</guid>
+//                 </manager>
+//               </managers>
+//               <team_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>101.94</total>
+//               </team_points>
+//               <team_projected_points>
+//                 <coverage_type>week</coverage_type>
+//                 <week>16</week>
+//                 <total>127.28</total>
+//               </team_projected_points>
+//             </team>
+//           </teams>
+//         </matchup>
+//       </matchups>
+//     </scoreboard>
+//   </league>
+// </fantasy_content>
 
-GET
-URIs¶
 
-http://fantasysports.yahooapis.com/fantasy/v2/league/
 
-Any sub-resource under a league is extracted using a URI like:
+// Leagues collection
+//
+// Description
+// With the Leagues API, you can obtain information from a collection of leagues
+// simultaneously. Each element beneath the Leagues Collection will be a League
+// Resource
+//
+// HTTP Operations Supported
+// GET
+//
+// URIs
+// URI	Description	Sample
+// http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=,{league_key2}	Fetch specific leagues {league_key1} and {league_key2}	http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=223.l.431
+// Any sub-resource valid for a league is a valid sub-resource under the leagues collection.
+// Any sub-resource for a collection of leagues is extracted using a URI like:
+//   /leagues/{sub_resource}
+//  OR
+//   /leagues;league_keys={league_key1},{league_key2}/{sub_resource}
+//
+// Multiple sub-resources can be extracted from leagues in the same URI using a format like:
+//   /leagues;out={sub_resource_1},{sub_resource_2}
+//  OR
+//   /leagues;league_keys={league_key1},{league_key2};out={sub_resource_1},{sub_resource_2}
 
-http://fantasysports.yahooapis.com/fantasy/v2/league//
-
-Multiple sub-resources can be extracted from league in the same URI using a format like:
-
-http://fantasysports.yahooapis.com/fantasy/v2/league/;out=,{sub_resource_2}
-
-League key format¶
-
-.l.{league_id}
-
-Example:pnfl.l.431 or 223.l.431
-
-Note
-
-The separator between the game_key and league_id is a lower case L (not the number 1).
-
-Sub-resources¶
-
-Default sub-resource: metadata
-
-Name	Description	URI	Sample
-metadata	Includes league key, id, name, url, draft status, number of teams, and current week information.	/fantasy/v2/league//metadata	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431
-settings	League settings. For instance, draft type, scoring type, roster positions, stat categories and modifiers, divisions.	/fantasy/v2/league//settings	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings
-standings	Ranking of teams within the league. Accepts Teams as a sub-resource, and includes team_standings data by default beneath the teams	/fantasy/v2/league//standings	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings
-scoreboard	League scoreboard. Accepts Matchups as a sub-resource, which in turn accept Teams as a sub-resource. Includes team_stats data by default.
-Scoreboard for current week: /fantasy/v2/league//scoreboard
-
-Scoreboard for a particular week: /fantasy/v2/league//scoreboard;week={week}
-
-http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard;week=2
-``
-
-``
-All teams in the league.	/fantasy/v2/league//teams	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/teams
-``
-
-``
-The league’s eligible players.	/fantasy/v2/league//players	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/players
-draftresults	Draft results for all teams in the league.	/fantasy/v2/league//draftresults	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/draftresults
-``
-
-``
-League transactions – adds, drops, and trades.	/fantasy/v2/league//transactions	http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/transactions
-Sample XML¶
-
-http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431
-
-<?xml version="1.0" encoding="UTF-8"?>
-<fantasy_content xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431" xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" time="181.80584907532ms" copyright="Data provided by Yahoo! and STATS, LLC" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng">
-  <league>
-    <league_key>223.l.431</league_key>
-    <league_id>431</league_id>
-    <name>Y! Friends and Family League</name>
-    <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
-    <draft_status>postdraft</draft_status>
-    <num_teams>14</num_teams>
-    <edit_key>17</edit_key>
-    <weekly_deadline/>
-    <league_update_timestamp>1262595518</league_update_timestamp>
-    <scoring_type>head</scoring_type>
-    <current_week>16</current_week>
-    <start_week>1</start_week>
-    <end_week>16</end_week>
-    <is_finished>1</is_finished>
-  </league>
-</fantasy_content>
-http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings
-
-<?xml version="1.0" encoding="UTF-8"?>
-<fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/settings" time="86.472988128662ms" copyright="Data provided by Yahoo! and STATS, LLC">
-  <league>
-    <league_key>223.l.431</league_key>
-    <league_id>431</league_id>
-    <name>Y! Friends and Family League</name>
-    <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
-    <draft_status>postdraft</draft_status>
-    <num_teams>14</num_teams>
-    <edit_key>17</edit_key>
-    <weekly_deadline/>
-    <league_update_timestamp>1262595518</league_update_timestamp>
-    <scoring_type>head</scoring_type>
-    <current_week>16</current_week>
-    <start_week>1</start_week>
-    <end_week>16</end_week>
-    <is_finished>1</is_finished>
-    <settings>
-      <draft_type>live</draft_type>
-      <scoring_type>head</scoring_type>
-      <uses_playoff>1</uses_playoff>
-      <playoff_start_week>14</playoff_start_week>
-      <uses_playoff_reseeding>0</uses_playoff_reseeding>
-      <uses_lock_eliminated_teams>0</uses_lock_eliminated_teams>
-      <uses_faab>1</uses_faab>
-      <trade_end_date>2009-11-27</trade_end_date>
-      <trade_ratify_type>commish</trade_ratify_type>
-      <trade_reject_time>0</trade_reject_time>
-      <roster_positions>
-        <roster_position>
-          <position>QB</position>
-          <count>1</count>
-        </roster_position>
-        <roster_position>
-          <position>WR</position>
-          <count>3</count>
-        </roster_position>
-        <roster_position>
-          <position>RB</position>
-          <count>2</count>
-        </roster_position>
-        <roster_position>
-          <position>TE</position>
-          <count>1</count>
-        </roster_position>
-        <roster_position>
-          <position>W/R/T</position>
-          <count>1</count>
-        </roster_position>
-        <roster_position>
-          <position>K</position>
-          <count>1</count>
-        </roster_position>
-        <roster_position>
-          <position>DEF</position>
-          <count>1</count>
-        </roster_position>
-        <roster_position>
-          <position>BN</position>
-          <count>4</count>
-        </roster_position>
-      </roster_positions>
-      <stat_categories>
-        <stats>
-          <stat>
-            <stat_id>4</stat_id>
-            <enabled>1</enabled>
-            <name>Passing Yards</name>
-            <display_name>Pass Yds</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>5</stat_id>
-            <enabled>1</enabled>
-            <name>Passing Touchdowns</name>
-            <display_name>Pass TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>6</stat_id>
-            <enabled>1</enabled>
-            <name>Interceptions</name>
-            <display_name>Int</display_name>
-            <sort_order>0</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>9</stat_id>
-            <enabled>1</enabled>
-            <name>Rushing Yards</name>
-            <display_name>Rush Yds</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>10</stat_id>
-            <enabled>1</enabled>
-            <name>Rushing Touchdowns</name>
-            <display_name>Rush TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>11</stat_id>
-            <enabled>1</enabled>
-            <name>Receptions</name>
-            <display_name>Rec</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>12</stat_id>
-            <enabled>1</enabled>
-            <name>Reception Yards</name>
-            <display_name>Rec Yds</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>13</stat_id>
-            <enabled>1</enabled>
-            <name>Reception Touchdowns</name>
-            <display_name>Rec TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>15</stat_id>
-            <enabled>1</enabled>
-            <name>Return Touchdowns</name>
-            <display_name>Ret TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>16</stat_id>
-            <enabled>1</enabled>
-            <name>2-Point Conversions</name>
-            <display_name>2-PT</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>18</stat_id>
-            <enabled>1</enabled>
-            <name>Fumbles Lost</name>
-            <display_name>Fum Lost</display_name>
-            <sort_order>0</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>57</stat_id>
-            <enabled>1</enabled>
-            <name>Offensive Fumble Return TD</name>
-            <display_name>Fum Ret TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>O</position_type>
-          </stat>
-          <stat>
-            <stat_id>19</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals 0-19 Yards</name>
-            <display_name>FG 0-19</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>20</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals 20-29 Yards</name>
-            <display_name>FG 20-29</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>21</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals 30-39 Yards</name>
-            <display_name>FG 30-39</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>22</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals 40-49 Yards</name>
-            <display_name>FG 40-49</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>23</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals 50+ Yards</name>
-            <display_name>FG 50+</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>24</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals Missed 0-19 Yards</name>
-            <display_name>FGM 0-19</display_name>
-            <sort_order>0</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>25</stat_id>
-            <enabled>1</enabled>
-            <name>Field Goals Missed 20-29 Yards</name>
-            <display_name>FGM 20-29</display_name>
-            <sort_order>0</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>29</stat_id>
-            <enabled>1</enabled>
-            <name>Point After Attempt Made</name>
-            <display_name>PAT Made</display_name>
-            <sort_order>1</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>30</stat_id>
-            <enabled>1</enabled>
-            <name>Point After Attempt Missed</name>
-            <display_name>PAT Miss</display_name>
-            <sort_order>0</sort_order>
-            <position_type>K</position_type>
-          </stat>
-          <stat>
-            <stat_id>31</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed</name>
-            <display_name>Pts Allow</display_name>
-            <sort_order>0</sort_order>
-            <position_type>DT</position_type>
-            <is_only_display_stat>1</is_only_display_stat>
-          </stat>
-          <stat>
-            <stat_id>32</stat_id>
-            <enabled>1</enabled>
-            <name>Sack</name>
-            <display_name>Sack</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>33</stat_id>
-            <enabled>1</enabled>
-            <name>Interception</name>
-            <display_name>Int</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>34</stat_id>
-            <enabled>1</enabled>
-            <name>Fumble Recovery</name>
-            <display_name>Fum Rec</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>35</stat_id>
-            <enabled>1</enabled>
-            <name>Touchdown</name>
-            <display_name>TD</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>36</stat_id>
-            <enabled>1</enabled>
-            <name>Safety</name>
-            <display_name>Safe</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>37</stat_id>
-            <enabled>1</enabled>
-            <name>Block Kick</name>
-            <display_name>Blk Kick</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>50</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 0 points</name>
-            <display_name>Pts Allow 0</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>51</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 1-6 points</name>
-            <display_name>Pts Allow 1-6</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>52</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 7-13 points</name>
-            <display_name>Pts Allow 7-13</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>53</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 14-20 points</name>
-            <display_name>Pts Allow 14-20</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>54</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 21-27 points</name>
-            <display_name>Pts Allow 21-27</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>55</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 28-34 points</name>
-            <display_name>Pts Allow 28-34</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-          <stat>
-            <stat_id>56</stat_id>
-            <enabled>1</enabled>
-            <name>Points Allowed 35+ points</name>
-            <display_name>Pts Allow 35+</display_name>
-            <sort_order>1</sort_order>
-            <position_type>DT</position_type>
-          </stat>
-        </stats>
-      </stat_categories>
-      <stat_modifiers>
-        <stats>
-          <stat>
-            <stat_id>4</stat_id>
-            <value>0.04</value>
-          </stat>
-          <stat>
-            <stat_id>5</stat_id>
-            <value>4</value>
-          </stat>
-          <stat>
-            <stat_id>6</stat_id>
-            <value>-1</value>
-          </stat>
-          <stat>
-            <stat_id>9</stat_id>
-            <value>0.1</value>
-          </stat>
-          <stat>
-            <stat_id>10</stat_id>
-            <value>6</value>
-          </stat>
-          <stat>
-            <stat_id>11</stat_id>
-            <value>.75</value>
-          </stat>
-          <stat>
-            <stat_id>12</stat_id>
-            <value>0.1</value>
-          </stat>
-          <stat>
-            <stat_id>13</stat_id>
-            <value>6</value>
-          </stat>
-          <stat>
-            <stat_id>15</stat_id>
-            <value>6</value>
-          </stat>
-          <stat>
-            <stat_id>16</stat_id>
-            <value>2</value>
-          </stat>
-          <stat>
-            <stat_id>18</stat_id>
-            <value>-1</value>
-          </stat>
-          <stat>
-            <stat_id>57</stat_id>
-            <value>6</value>
-          </stat>
-          <stat>
-            <stat_id>19</stat_id>
-            <value>3</value>
-          </stat>
-          <stat>
-            <stat_id>20</stat_id>
-            <value>3</value>
-          </stat>
-          <stat>
-            <stat_id>21</stat_id>
-            <value>3</value>
-          </stat>
-          <stat>
-            <stat_id>22</stat_id>
-            <value>4</value>
-          </stat>
-          <stat>
-            <stat_id>23</stat_id>
-            <value>5</value>
-          </stat>
-          <stat>
-            <stat_id>24</stat_id>
-            <value>-3</value>
-          </stat>
-          <stat>
-            <stat_id>25</stat_id>
-            <value>-1</value>
-          </stat>
-          <stat>
-            <stat_id>29</stat_id>
-            <value>1</value>
-          </stat>
-          <stat>
-            <stat_id>30</stat_id>
-            <value>-.5</value>
-          </stat>
-          <stat>
-            <stat_id>32</stat_id>
-            <value>1</value>
-          </stat>
-          <stat>
-            <stat_id>33</stat_id>
-            <value>2</value>
-          </stat>
-          <stat>
-            <stat_id>34</stat_id>
-            <value>2</value>
-          </stat>
-          <stat>
-            <stat_id>35</stat_id>
-            <value>6</value>
-          </stat>
-          <stat>
-            <stat_id>36</stat_id>
-            <value>2</value>
-          </stat>
-          <stat>
-            <stat_id>37</stat_id>
-            <value>2</value>
-          </stat>
-          <stat>
-            <stat_id>50</stat_id>
-            <value>10</value>
-          </stat>
-          <stat>
-            <stat_id>51</stat_id>
-            <value>7</value>
-          </stat>
-          <stat>
-            <stat_id>52</stat_id>
-            <value>4</value>
-          </stat>
-          <stat>
-            <stat_id>53</stat_id>
-            <value>1</value>
-          </stat>
-          <stat>
-            <stat_id>54</stat_id>
-            <value>0</value>
-          </stat>
-          <stat>
-            <stat_id>55</stat_id>
-            <value>-1</value>
-          </stat>
-          <stat>
-            <stat_id>56</stat_id>
-            <value>-4</value>
-          </stat>
-        </stats>
-      </stat_modifiers>
-      <divisions>
-        <division>
-          <division_id>1</division_id>
-          <name>Family</name>
-        </division>
-        <division>
-          <division_id>2</division_id>
-          <name>Friends</name>
-        </division>
-      </divisions>
-    </settings>
-  </league>
-</fantasy_content>
-http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings
-
-<?xml version="1.0" encoding="UTF-8"?>
-<fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings" time="201.46489143372ms" copyright="Data provided by Yahoo! and STATS, LLC">
-  <league>
-    <league_key>223.l.431</league_key>
-    <league_id>431</league_id>
-    <name>Y! Friends and Family League</name>
-    <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
-    <draft_status>postdraft</draft_status>
-    <num_teams>14</num_teams>
-    <edit_key>17</edit_key>
-    <weekly_deadline/>
-    <league_update_timestamp>1262595518</league_update_timestamp>
-    <scoring_type>head</scoring_type>
-    <current_week>16</current_week>
-    <start_week>1</start_week>
-    <end_week>16</end_week>
-    <is_finished>1</is_finished>
-    <standings>
-      <teams count="14">
-        <team>
-          <team_key>223.l.431.t.10</team_key>
-          <team_id>10</team_id>
-          <name>Gehlken</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/10</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/4b978f0ci2432zws140sp2/imXqmYo8cq3NxEFtQB4wgAs-/6/tn48.jpeg?ciA8DVOBMH.UXGXk</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>0</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>5</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>4LAITFUXFASDNAXFWUOHWNU3BY</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1682.33</total>
-          </team_points>
-          <team_standings>
-            <rank>1</rank>
-            <outcome_totals>
-              <wins>9</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-              <percentage>.692</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>5</wins>
-              <losses>1</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.5</team_key>
-          <team_id>5</team_id>
-          <name>RotoExperts</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/5</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/49be42a6i26e5zul3re3/d2x_9_UweKP95SJZ_Hwnk2Rl/2/tn48.jpg?ciA8DVOBIRa6b7wq</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>1</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>12</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>RW3ELDFMOFTES2EUAWQVCPPN7E</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1764.09</total>
-          </team_points>
-          <team_standings>
-            <rank>2</rank>
-            <outcome_totals>
-              <wins>9</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-              <percentage>.692</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>4</wins>
-              <losses>2</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.8</team_key>
-          <team_id>8</team_id>
-          <name>Y! - Pianowski</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/8</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>0</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>6</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1569.48</total>
-          </team_points>
-          <team_standings>
-            <rank>3</rank>
-            <outcome_totals>
-              <wins>8</wins>
-              <losses>5</losses>
-              <ties>0</ties>
-              <percentage>.615</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>4</wins>
-              <losses>2</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.12</team_key>
-          <team_id>12</team_id>
-          <name>Y! - Behrens</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/12</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://lookup.avatars.yahoo.com/images?yid=abehrens53&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>0</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>3</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>E2KS77CDQPACRTSBCYPOFFW6AI</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1652.27</total>
-          </team_points>
-          <team_standings>
-            <rank>4</rank>
-            <outcome_totals>
-              <wins>8</wins>
-              <losses>5</losses>
-              <ties>0</ties>
-              <percentage>.615</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>5</wins>
-              <losses>1</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.4</team_key>
-          <team_id>4</team_id>
-          <name>Salfino-Comcast/NESN</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/4</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/4d8a517fi1b71zul1re3/ypdMGIA8cbVafvybuj2J.Jg-/2/tn48.jpg?ciA8DVOB5bipYD0R</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>0</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>9</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>PDLVXDDVXK2FRDI3FHRSS74F2U</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1621.98</total>
-          </team_points>
-          <team_standings>
-            <rank>5</rank>
-            <outcome_totals>
-              <wins>7</wins>
-              <losses>6</losses>
-              <ties>0</ties>
-              <percentage>.538</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>3</wins>
-              <losses>3</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.11</team_key>
-          <team_id>11</team_id>
-          <name>FantasyGuru.com-Hans</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/11</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://lookup.avatars.yahoo.com/images?yid=fantasygurudotcom&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>1</faab_balance>
-          <clinched_playoffs>1</clinched_playoffs>
-          <managers>
-            <manager>
-              <manager_id>4</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>B7IJFDI5UUTN3AQ2F7ZEA4BDU4</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1469.00</total>
-          </team_points>
-          <team_standings>
-            <rank>6</rank>
-            <outcome_totals>
-              <wins>7</wins>
-              <losses>6</losses>
-              <ties>0</ties>
-              <percentage>.538</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>2</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.1</team_key>
-          <team_id>1</team_id>
-          <name>PFW - Blunda</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/1</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_01_48.gif</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>22</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>13</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>XNAXQZRDZPJ3RVFMY7ZTSWEFLU</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1461.71</total>
-          </team_points>
-          <team_standings>
-            <rank>7</rank>
-            <outcome_totals>
-              <wins>7</wins>
-              <losses>6</losses>
-              <ties>0</ties>
-              <percentage>.538</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>3</wins>
-              <losses>3</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.2</team_key>
-          <team_id>2</team_id>
-          <name>Y! - Evans</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/2</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/4a68b2d6i2663zul3re3/HYebAP0zcqEPfMp3gOK8Mmbv/4/tn48.jpg?ciA8DVOBzMjxdtsK</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>35</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>8</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>RV2NLFT5LDNKUDOFSWSHIDINY4</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1512.53</total>
-          </team_points>
-          <team_standings>
-            <rank>8</rank>
-            <outcome_totals>
-              <wins>6</wins>
-              <losses>7</losses>
-              <ties>0</ties>
-              <percentage>.462</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>2</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.13</team_key>
-          <team_id>13</team_id>
-          <name>Erickson - RotoWire</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/13</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://lookup.avatars.yahoo.com/images?yid=jeff_rotonews&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>17</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>11</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>SB4Y5HVVUKMCTKZFQCXHIZ222E</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1484.56</total>
-          </team_points>
-          <team_standings>
-            <rank>9</rank>
-            <outcome_totals>
-              <wins>6</wins>
-              <losses>7</losses>
-              <ties>0</ties>
-              <percentage>.462</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>3</wins>
-              <losses>3</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.9</team_key>
-          <team_id>9</team_id>
-          <name>Y! - Funston</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/9</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://lookup.avatars.yahoo.com/images?yid=brandoanf1&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>10</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>1</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>3H7IQ3F2742K2ODHSJK5YXL23E</guid>
-              <is_commissioner>1</is_commissioner>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1430.24</total>
-          </team_points>
-          <team_standings>
-            <rank>10</rank>
-            <outcome_totals>
-              <wins>6</wins>
-              <losses>7</losses>
-              <ties>0</ties>
-              <percentage>.462</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>2</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.7</team_key>
-          <team_id>7</team_id>
-          <name>RotoWire_Liss</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/7</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>68</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>7</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>4BDB5LIG3IFVROH7SRBX44LBZM</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1424.56</total>
-          </team_points>
-          <team_standings>
-            <rank>11</rank>
-            <outcome_totals>
-              <wins>6</wins>
-              <losses>7</losses>
-              <ties>0</ties>
-              <percentage>.462</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>3</wins>
-              <losses>3</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.3</team_key>
-          <team_id>3</team_id>
-          <name>RotoWire - Del Don</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/3</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_05_48.gif</url>
-            </team_logo>
-          </team_logos>
-          <division_id>2</division_id>
-          <faab_balance>0</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>10</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>4A5KVYHC7ZSEGOBFHFSO5Q64VA</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1366.89</total>
-          </team_points>
-          <team_standings>
-            <rank>12</rank>
-            <outcome_totals>
-              <wins>6</wins>
-              <losses>7</losses>
-              <ties>0</ties>
-              <percentage>.462</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>3</wins>
-              <losses>3</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.6</team_key>
-          <team_id>6</team_id>
-          <name>Y! - Romig</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/6</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/49b954dci229az/IJtbcRQjdKtd_DMoStSK/103/tn48.jpg?ciA8DVOB2WQ2Fk4F</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>0</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>2</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>FS5M5LOFJRKVJNRIWG36ZUF7IQ</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1370.16</total>
-          </team_points>
-          <team_standings>
-            <rank>13</rank>
-            <outcome_totals>
-              <wins>5</wins>
-              <losses>8</losses>
-              <ties>0</ties>
-              <percentage>.385</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>2</wins>
-              <losses>4</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-        <team>
-          <team_key>223.l.431.t.14</team_key>
-          <team_id>14</team_id>
-          <name>Y! - Chase</name>
-          <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/14</url>
-          <team_logos>
-            <team_logo>
-              <size>medium</size>
-              <url>http://a323.yahoofs.com/coreid/4a7a23a5icfazul2re3/2fIcrk8yc7QS3j_ei4PULEbpFA--/1/tn48.jpg?ciA8DVOBcEQk3vWZ</url>
-            </team_logo>
-          </team_logos>
-          <division_id>1</division_id>
-          <faab_balance>92</faab_balance>
-          <managers>
-            <manager>
-              <manager_id>14</manager_id>
-              <nickname>-- hidden --</nickname>
-              <guid>7CSOKBMM74MGFMSWHWJMM4FBQ4</guid>
-            </manager>
-          </managers>
-          <team_points>
-            <coverage_type>season</coverage_type>
-            <season>2009</season>
-            <total>1237.47</total>
-          </team_points>
-          <team_standings>
-            <rank>14</rank>
-            <outcome_totals>
-              <wins>1</wins>
-              <losses>12</losses>
-              <ties>0</ties>
-              <percentage>.077</percentage>
-            </outcome_totals>
-            <divisional_outcome_totals>
-              <wins>1</wins>
-              <losses>5</losses>
-              <ties>0</ties>
-            </divisional_outcome_totals>
-          </team_standings>
-        </team>
-      </teams>
-    </standings>
-  </league>
-</fantasy_content>
-http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard
-
-<?xml version="1.0" encoding="UTF-8"?>
-<fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard" time="148.71311187744ms" copyright="Data provided by Yahoo! and STATS, LLC">
-  <league>
-    <league_key>223.l.431</league_key>
-    <league_id>431</league_id>
-    <name>Y! Friends and Family League</name>
-    <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
-    <draft_status>postdraft</draft_status>
-    <num_teams>14</num_teams>
-    <edit_key>17</edit_key>
-    <weekly_deadline/>
-    <league_update_timestamp>1262595518</league_update_timestamp>
-    <scoring_type>head</scoring_type>
-    <current_week>16</current_week>
-    <start_week>1</start_week>
-    <end_week>16</end_week>
-    <is_finished>1</is_finished>
-    <scoreboard>
-      <week>16</week>
-      <matchups count="2">
-        <matchup>
-          <week>16</week>
-          <status>postevent</status>
-          <is_tied>0</is_tied>
-          <winner_team_key>223.l.431.t.10</winner_team_key>
-          <teams count="2">
-            <team>
-              <team_key>223.l.431.t.5</team_key>
-              <team_id>5</team_id>
-              <name>RotoExperts</name>
-              <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/5</url>
-              <team_logos>
-                <team_logo>
-                  <size>medium</size>
-                  <url>http://a323.yahoofs.com/coreid/49be42a6i26e5zul3re3/d2x_9_UweKP95SJZ_Hwnk2Rl/2/tn48.jpg?ciA8DVOBIRa6b7wq</url>
-                </team_logo>
-              </team_logos>
-              <division_id>2</division_id>
-              <faab_balance>1</faab_balance>
-              <clinched_playoffs>1</clinched_playoffs>
-              <managers>
-                <manager>
-                  <manager_id>12</manager_id>
-                  <nickname>-- hidden --</nickname>
-                  <guid>RW3ELDFMOFTES2EUAWQVCPPN7E</guid>
-                </manager>
-              </managers>
-              <team_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>135.22</total>
-              </team_points>
-              <team_projected_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>142.81</total>
-              </team_projected_points>
-            </team>
-            <team>
-              <team_key>223.l.431.t.10</team_key>
-              <team_id>10</team_id>
-              <name>Gehlken</name>
-              <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/10</url>
-              <team_logos>
-                <team_logo>
-                  <size>medium</size>
-                  <url>http://a323.yahoofs.com/coreid/4b978f0ci2432zws140sp2/imXqmYo8cq3NxEFtQB4wgAs-/6/tn48.jpeg?ciA8DVOBMH.UXGXk</url>
-                </team_logo>
-              </team_logos>
-              <division_id>1</division_id>
-              <faab_balance>0</faab_balance>
-              <clinched_playoffs>1</clinched_playoffs>
-              <managers>
-                <manager>
-                  <manager_id>5</manager_id>
-                  <nickname>-- hidden --</nickname>
-                  <guid>4LAITFUXFASDNAXFWUOHWNU3BY</guid>
-                </manager>
-              </managers>
-              <team_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>137.86</total>
-              </team_points>
-              <team_projected_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>133.57</total>
-              </team_projected_points>
-            </team>
-          </teams>
-        </matchup>
-        <matchup>
-          <week>16</week>
-          <status>postevent</status>
-          <is_tied>0</is_tied>
-          <winner_team_key>223.l.431.t.8</winner_team_key>
-          <teams count="2">
-            <team>
-              <team_key>223.l.431.t.8</team_key>
-              <team_id>8</team_id>
-              <name>Y! - Pianowski</name>
-              <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/8</url>
-              <team_logos>
-                <team_logo>
-                  <size>medium</size>
-                  <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
-                </team_logo>
-              </team_logos>
-              <division_id>1</division_id>
-              <faab_balance>0</faab_balance>
-              <clinched_playoffs>1</clinched_playoffs>
-              <managers>
-                <manager>
-                  <manager_id>6</manager_id>
-                  <nickname>-- hidden --</nickname>
-                  <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
-                </manager>
-              </managers>
-              <team_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>103.39</total>
-              </team_points>
-              <team_projected_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>104.17</total>
-              </team_projected_points>
-            </team>
-            <team>
-              <team_key>223.l.431.t.12</team_key>
-              <team_id>12</team_id>
-              <name>Y! - Behrens</name>
-              <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/12</url>
-              <team_logos>
-                <team_logo>
-                  <size>medium</size>
-                  <url>http://lookup.avatars.yahoo.com/images?yid=abehrens53&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-                </team_logo>
-              </team_logos>
-              <division_id>1</division_id>
-              <faab_balance>0</faab_balance>
-              <clinched_playoffs>1</clinched_playoffs>
-              <managers>
-                <manager>
-                  <manager_id>3</manager_id>
-                  <nickname>-- hidden --</nickname>
-                  <guid>E2KS77CDQPACRTSBCYPOFFW6AI</guid>
-                </manager>
-              </managers>
-              <team_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>101.94</total>
-              </team_points>
-              <team_projected_points>
-                <coverage_type>week</coverage_type>
-                <week>16</week>
-                <total>127.28</total>
-              </team_projected_points>
-            </team>
-          </teams>
-        </matchup>
-      </matchups>
-    </scoreboard>
-  </league>
-</fantasy_content>
-*/
-
-/*
-Leagues collection¶
-
-Description¶
-
-With the Leagues API, you can obtain information from a collection of leagues simultaneously. Each element beneath the Leagues Collection will be a League Resource
-
-HTTP Operations Supported¶
-
-GET
-URIs¶
-
-URI	Description	Sample
-http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=,{league_key2}	Fetch specific leagues {league_key1} and {league_key2}	http://fantasysports.yahooapis.com/fantasy/v2/leagues;league_keys=223.l.431
-Any sub-resource valid for a league is a valid sub-resource under the leagues collection.
-
-Any sub-resource for a collection of leagues is extracted using a URI like:
-
-/leagues/{sub_resource}
-
-OR
-
-/leagues;league_keys={league_key1},{league_key2}/{sub_resource}
-
-Multiple sub-resources can be extracted from leagues in the same URI using a format like:
-
-/leagues;out={sub_resource_1},{sub_resource_2}
-
-OR
-
-/leagues;league_keys={league_key1},{league_key2};out={sub_resource_1},{sub_resource_2}
-*/
 
 /*
 Team resource¶
@@ -3852,34 +3876,9 @@ count	Any integer greater than 0	/transactions;count=5
 // use_login flag, instead of trying to request a User resource directly from
 // the URI.
 type UserResource struct {
-}
-
-// GetUserResource
-// It is generally recommended that you instead use the Users collection,
-// passing along the use_login flag.
-//
-// Sub-resources¶
-// Name:
-// Description: Fetch the Games in which the user has played. Additionally
-//              accepts flags is_available to only return available games.
-// URI:         /fantasy/v2/;use_login=1/games
-// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games
-//
-// Name:        /
-// Description: Fetch leagues that the user belongs to in one or more games. The leagues will be scoped to the user. This will throw an error if any of the specified games do not support league sub-resources.
-// URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/leagues
-// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/leagues
-//
-// Name:
-// Description: Fetch teams owned by the user in one or more games. The teams
-//              will be scoped to the user. This will throw an error if any of
-//              the specified games do not support team sub-resources.
-// URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/teams
-// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/teams
-func (y *YahooConfig) GetUserResource() *UserResource {
-	// GET
-	panic("Not Implemented")
-	return nil
+	XMLName xml.Name `xml:"user",json:"-"`
+	UserGuids []string `xml:"guid",json:",omitempty"`
+	Games []GameResource `xml:"games>game",json:",omitempty"`
 }
 
 // Users collection
@@ -3896,10 +3895,14 @@ func (y *YahooConfig) GetUserResource() *UserResource {
 //     </fantasy_content>
 type UserCollection struct {
 	XMLName xml.Name `xml:"fantasy_content",json:"-"`
-	UserGuids []string `xml:"users>user>guid",json:",omitempty"`
-	Games []GameResource `xml:"users>user>games>game",json:",omitempty"`
+	Users []UserResource `xml:"users>user",json:",omitempty"`
+	Body string
 }
 
+// GetUserResource
+// It is generally recommended that you instead use the Users collection,
+// passing along the use_login flag.
+//
 // Retrieve User Collection
 // URIs
 //
@@ -3913,7 +3916,14 @@ type UserCollection struct {
 // Multiple sub-resources can be extracted from users in the same URI using a format like:
 //     /users;use_login=1;out={sub_resource_1},{sub_resource_2}
 //     /users;field={field_name1},{field_name2}
-func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
+//
+// Sub-resources
+// Name:
+// Description: Fetch the Games in which the user has played. Additionally
+//              accepts flags is_available to only return available games.
+// URI:         /fantasy/v2/;use_login=1/games
+// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games
+func (y *YahooConfig) GetUserCollectionGames(r *http.Request) *UserCollection {
 	session, err := y.SessionStore.Get(r, "session-name")
 	if err != nil {
 		log.Println(err.Error(), 500)
@@ -3945,6 +3955,207 @@ func (y *YahooConfig) GetUserCollection(r *http.Request) *UserCollection {
 	if xml.Unmarshal(body, &userCollection); err != nil {
 		log.Fatal(err)
 	}
+
+	return &userCollection
+}
+
+// Name:        /
+// Description: Fetch leagues that the user belongs to in one or more games. The leagues will be scoped to the user. This will throw an error if any of the specified games do not support league sub-resources.
+// URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/leagues
+// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/leagues
+//
+// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=348/leagues" time="51.609039306641ms" copyright="Data provided by Yahoo! and STATS, LLC" refresh_rate="31">
+// 	<users count="1">
+// 		<user>
+// 			<guid>VJ...DM</guid>
+// 			<games count="1">
+// 				<game>
+// 					<game_key>348</game_key>
+// 					<game_id>348</game_id>
+// 					<name>Football</name>
+// 					<code>nfl</code>
+// 					<type>full</type>
+// 					<url>http://football.fantasysports.yahoo.com/f1</url>
+// 					<season>2015</season>
+// 					<is_registration_over>0</is_registration_over>
+// 					<leagues count="1">
+// 						<league>
+// 							<league_key>348.l.900006</league_key>
+// 							<league_id>962366</league_id>
+// 							<name>Football League</name>
+// 							<url>http://football.fantasysports.yahoo.com/f1/900006</url>
+// 							<password/>
+// 							<league_chat_id>5q...is</league_chat_id>
+// 							<draft_status>postdraft</draft_status>
+// 							<num_teams>10</num_teams>
+// 							<edit_key>1</edit_key>
+// 							<weekly_deadline/>
+// 							<league_update_timestamp/>
+// 							<scoring_type>head</scoring_type>
+// 							<league_type>private</league_type>
+// 							<renew/>
+// 							<renewed/>
+// 							<short_invitation_url>https://yho.com/nfl?l=96...a3</short_invitation_url>
+// 							<is_pro_league>0</is_pro_league>
+// 							<current_week>1</current_week>
+// 							<start_week>1</start_week>
+// 							<start_date>2015-09-10</start_date>
+// 							<end_week>17</end_week>
+// 							<end_date>2016-01-03</end_date>
+// 							<game_code>nfl</game_code>
+// 							<season>2015</season>
+// 						</league>
+// 					</leagues>
+// 				</game>
+// 			</games>
+// 		</user>
+// 	</users>
+// </fantasy_content>
+func (y *YahooConfig) GetUserCollectionLeagues(r *http.Request) *UserCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+  tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+  client := y.conf.Client(oauth2.NoContext, tok)
+
+	vars := mux.Vars(r)
+	game_keys := vars["game_keys"]
+	url := fmt.Sprintf("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=%s/leagues", game_keys)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	var userCollection UserCollection
+	if xml.Unmarshal(body, &userCollection); err != nil {
+		log.Fatal(err)
+	}
+	userCollection.Body = string(body)
+
+	return &userCollection
+}
+
+
+// Name:
+// Description: Fetch teams owned by the user in one or more games. The teams
+//              will be scoped to the user. This will throw an error if any of
+//              the specified games do not support team sub-resources.
+// URI:         /fantasy/v2/;use_login=1/games;game_keys=,{game_key2}/teams
+// Sample:      http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=223/teams
+//
+// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=348/teams" time="58.568000793457ms" copyright="Data provided by Yahoo! and STATS, LLC" refresh_rate="31">
+// 	<users count="1">
+// 		<user>
+// 			<guid>VJ...DM</guid>
+// 			<games count="1">
+// 				<game>
+// 					<game_key>348</game_key>
+// 					<game_id>348</game_id>
+// 					<name>Football</name>
+// 					<code>nfl</code>
+// 					<type>full</type>
+// 					<url>http://football.fantasysports.yahoo.com/f1</url>
+// 					<season>2015</season>
+// 					<is_registration_over>0</is_registration_over>
+// 					<teams count="1">
+// 						<team>
+// 							<team_key>348.l.900006.t.1</team_key>
+// 							<team_id>1</team_id>
+// 							<name>Steve's Team</name>
+// 							<is_owned_by_current_login>1</is_owned_by_current_login>
+// 							<url>
+// 							http://football.fantasysports.yahoo.com/f1/900006/1
+// 							</url>
+// 							<team_logos>
+// 							<team_logo>
+// 							<size>large</size>
+// 							<url>
+// 							  https://s.yimg.com/dh/ap/fantasy/nfl/img/icon_01_100.png
+// 							</url>
+// 							</team_logo>
+// 							</team_logos>
+// 							<waiver_priority>10</waiver_priority>
+// 							<number_of_moves>1</number_of_moves>
+// 							<number_of_trades>0</number_of_trades>
+// 							<roster_adds>
+// 							<coverage_type>week</coverage_type>
+// 							<coverage_value>1</coverage_value>
+// 							<value>0</value>
+// 							</roster_adds>
+// 							<league_scoring_type>head</league_scoring_type>
+// 							<managers>
+// 								<manager>
+// 									<manager_id>1</manager_id>
+// 									<nickname>Steve</nickname>
+// 									<guid>VJ...DM</guid>
+// 									<is_commissioner>1</is_commissioner>
+// 									<is_current_login>1</is_current_login>
+// 									<email>st...om</email>
+// 									<image_url>
+// 									https://s.yimg.com/dh/ap/social/profile/profile_b64.png
+// 									</image_url>
+// 								</manager>
+// 							</managers>
+// 						</team>
+// 					</teams>
+// 				</game>
+// 			</games>
+// 		</user>
+// 	</users>
+// </fantasy_content>
+//
+func (y *YahooConfig) GetUserCollectionTeams(r *http.Request) *UserCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+  tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+  client := y.conf.Client(oauth2.NoContext, tok)
+
+	vars := mux.Vars(r)
+	game_keys := vars["game_keys"]
+	url := fmt.Sprintf("https://fantasysports.yahooapis.com/fantasy/v2/users;use_login=1/games;game_keys=%s/teams", game_keys)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	var userCollection UserCollection
+	if xml.Unmarshal(body, &userCollection); err != nil {
+		log.Fatal(err)
+	}
+	userCollection.Body = string(body)
 
 	return &userCollection
 }
