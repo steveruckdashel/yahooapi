@@ -12,6 +12,8 @@ func (a *YahooConfig) RegisterRoutes(r *mux.Router) {
 	// fantasy sports routes
 	r.HandleFunc("/yahoo/users/games", a.UserCollectionGamesHandler)
 	r.HandleFunc("/yahoo/users/game/{game_keys:[0-9]+}", a.UserCollectionAllHandler)
-	r.HandleFunc("/yahoo/users/leagues/{game_keys:[0-9]+}", a.UserCollectionLeaguesHandler)
-	r.HandleFunc("/yahoo/users/teams/{game_keys:[0-9]+}", a.UserCollectionTeamsHandler)
+	r.HandleFunc("/yahoo/users/game/{game_keys:[0-9]+}/leagues", a.UserCollectionLeaguesHandler)
+	r.HandleFunc("/yahoo/users/game/{game_keys:[0-9]+}/teams", a.UserCollectionTeamsHandler)
+  r.HandleFunc("/yahoo/users/leagues/{league_keys:[0-9a-zA-Z\\.]+}/scoreboard", a.LeagueScoreboardHandler)
+  r.HandleFunc("/yahoo/users/leagues/{league_keys:[0-9a-zA-Z\\.]+}/standings", a.LeagueStandingsHandler)
 }

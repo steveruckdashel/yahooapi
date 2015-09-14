@@ -251,29 +251,28 @@ type GameResource struct {
 
 /*
 HTTP Operations Supported
-
 GET
-URIs¶
 
+URIs
 http://fantasysports.yahooapis.com/fantasy/v2/game/
 
 Any sub-resource under a game is extracted using a URI like:
-
 http://fantasysports.yahooapis.com/fantasy/v2/game//
 
-Multiple sub-resources can be extracted from game in the same URI using a format like:
-
+Multiple sub-resources can be extracted from game in the same URI using a
+format like:
 http://fantasysports.yahooapis.com/fantasy/v2/game/;out=,{sub_resource_2}
 
-Game key format¶
-
+Game key format
 {game_code} or {game_id}
 
 Example:pnfl or 223
 
 Note
-
-If you specify a game_code as the game_key , we’ll translate that to the corresponding game_id upon parsing the URI. Therefore, any game_code s will be converted to game_id s in any keys returned by the Fantasy Sports APIs in the response XML.
+If you specify a game_code as the game_key , we’ll translate that to the
+corresponding game_id upon parsing the URI. Therefore, any game_code s will
+be converted to game_id s in any keys returned by the Fantasy Sports APIs in
+the response XML.
 
 Sub-resources¶
 
@@ -389,12 +388,13 @@ type LeagueResource struct {
 	EndDate               string   `xml:"end_date",json:",omitempty"`
 	GameCode              string   `xml:"game_code",json:",omitempty"`
 	Season                string   `xml:"season",json:",omitempty"`
+	ScoreBoard	ScoreBoardResource `xml:"scoreboard",json:",omitempty"`
 }
 
 type LeagueCollection struct {
 	XMLName xml.Name         `xml:"fantasy_content",json:"-"`
 	Leagues []LeagueResource `xml:"leagues>league",json:",omitempty"`
-	//Body string
+	Body string
 }
 
 // HTTP Operations Supported
@@ -994,8 +994,47 @@ type LeagueCollection struct {
 //     </settings>
 //   </league>
 // </fantasy_content>
-//
-// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings
+
+func (y *YahooConfig) GetLeagueStandings(r *http.Request) *LeagueCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+	tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+	client := y.conf.Client(oauth2.NoContext, tok)
+
+	vars := mux.Vars(r)
+	league_keys := vars["league_keys"]
+	url := fmt.Sprintf("http://fantasysports.yahooapis.com/fantasy/v2/league/%s/standings", league_keys)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	var leagueCollection LeagueCollection
+	if xml.Unmarshal(body, &leagueCollection); err != nil {
+		log.Fatal(err)
+	}
+	leagueCollection.Body = string(body)
+
+	return &leagueCollection
+}
+
 // <?xml version="1.0" encoding="UTF-8"?>
 // <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/standings" time="201.46489143372ms" copyright="Data provided by Yahoo! and STATS, LLC">
 //   <league>
@@ -1113,15 +1152,11 @@ type LeagueCollection struct {
 //           <clinched_playoffs>1</clinched_playoffs>
 //           <managers>
 //             <manager>
-//               <manager_id>6</manager_id>
-//               <nickname>-- hidden --</nickname>
-//               <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
+//							...
 //             </manager>
 //           </managers>
 //           <team_points>
-//             <coverage_type>season</coverage_type>
-//             <season>2009</season>
-//             <total>1569.48</total>
+//						...
 //           </team_points>
 //           <team_standings>
 //             <rank>3</rank>
@@ -1586,176 +1621,76 @@ type LeagueCollection struct {
 //     </standings>
 //   </league>
 // </fantasy_content>
-//
-// http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard
-// <?xml version="1.0" encoding="UTF-8"?>
-// <fantasy_content xmlns:yahoo="http://www.yahooapis.com/v1/base.rng" xmlns="http://fantasysports.yahooapis.com/fantasy/v2/base.rng" xml:lang="en-US" yahoo:uri="http://fantasysports.yahooapis.com/fantasy/v2/league/223.l.431/scoreboard" time="148.71311187744ms" copyright="Data provided by Yahoo! and STATS, LLC">
-//   <league>
-//     <league_key>223.l.431</league_key>
-//     <league_id>431</league_id>
-//     <name>Y! Friends and Family League</name>
-//     <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431</url>
-//     <draft_status>postdraft</draft_status>
-//     <num_teams>14</num_teams>
-//     <edit_key>17</edit_key>
-//     <weekly_deadline/>
-//     <league_update_timestamp>1262595518</league_update_timestamp>
-//     <scoring_type>head</scoring_type>
-//     <current_week>16</current_week>
-//     <start_week>1</start_week>
-//     <end_week>16</end_week>
-//     <is_finished>1</is_finished>
-//     <scoreboard>
-//       <week>16</week>
-//       <matchups count="2">
-//         <matchup>
-//           <week>16</week>
-//           <status>postevent</status>
-//           <is_tied>0</is_tied>
-//           <winner_team_key>223.l.431.t.10</winner_team_key>
-//           <teams count="2">
-//             <team>
-//               <team_key>223.l.431.t.5</team_key>
-//               <team_id>5</team_id>
-//               <name>RotoExperts</name>
-//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/5</url>
-//               <team_logos>
-//                 <team_logo>
-//                   <size>medium</size>
-//                   <url>http://a323.yahoofs.com/coreid/49be42a6i26e5zul3re3/d2x_9_UweKP95SJZ_Hwnk2Rl/2/tn48.jpg?ciA8DVOBIRa6b7wq</url>
-//                 </team_logo>
-//               </team_logos>
-//               <division_id>2</division_id>
-//               <faab_balance>1</faab_balance>
-//               <clinched_playoffs>1</clinched_playoffs>
-//               <managers>
-//                 <manager>
-//                   <manager_id>12</manager_id>
-//                   <nickname>-- hidden --</nickname>
-//                   <guid>RW3ELDFMOFTES2EUAWQVCPPN7E</guid>
-//                 </manager>
-//               </managers>
-//               <team_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>135.22</total>
-//               </team_points>
-//               <team_projected_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>142.81</total>
-//               </team_projected_points>
-//             </team>
-//             <team>
-//               <team_key>223.l.431.t.10</team_key>
-//               <team_id>10</team_id>
-//               <name>Gehlken</name>
-//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/10</url>
-//               <team_logos>
-//                 <team_logo>
-//                   <size>medium</size>
-//                   <url>http://a323.yahoofs.com/coreid/4b978f0ci2432zws140sp2/imXqmYo8cq3NxEFtQB4wgAs-/6/tn48.jpeg?ciA8DVOBMH.UXGXk</url>
-//                 </team_logo>
-//               </team_logos>
-//               <division_id>1</division_id>
-//               <faab_balance>0</faab_balance>
-//               <clinched_playoffs>1</clinched_playoffs>
-//               <managers>
-//                 <manager>
-//                   <manager_id>5</manager_id>
-//                   <nickname>-- hidden --</nickname>
-//                   <guid>4LAITFUXFASDNAXFWUOHWNU3BY</guid>
-//                 </manager>
-//               </managers>
-//               <team_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>137.86</total>
-//               </team_points>
-//               <team_projected_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>133.57</total>
-//               </team_projected_points>
-//             </team>
-//           </teams>
-//         </matchup>
-//         <matchup>
-//           <week>16</week>
-//           <status>postevent</status>
-//           <is_tied>0</is_tied>
-//           <winner_team_key>223.l.431.t.8</winner_team_key>
-//           <teams count="2">
-//             <team>
-//               <team_key>223.l.431.t.8</team_key>
-//               <team_id>8</team_id>
-//               <name>Y! - Pianowski</name>
-//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/8</url>
-//               <team_logos>
-//                 <team_logo>
-//                   <size>medium</size>
-//                   <url>http://l.yimg.com/a/i/us/sp/fn/default/full/nfl/icon_10_48.gif</url>
-//                 </team_logo>
-//               </team_logos>
-//               <division_id>1</division_id>
-//               <faab_balance>0</faab_balance>
-//               <clinched_playoffs>1</clinched_playoffs>
-//               <managers>
-//                 <manager>
-//                   <manager_id>6</manager_id>
-//                   <nickname>-- hidden --</nickname>
-//                   <guid>WMKEJTV3VUJA4VZWQ25O27W43M</guid>
-//                 </manager>
-//               </managers>
-//               <team_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>103.39</total>
-//               </team_points>
-//               <team_projected_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>104.17</total>
-//               </team_projected_points>
-//             </team>
-//             <team>
-//               <team_key>223.l.431.t.12</team_key>
-//               <team_id>12</team_id>
-//               <name>Y! - Behrens</name>
-//               <url>http://football.fantasysports.yahoo.com/archive/pnfl/2009/431/12</url>
-//               <team_logos>
-//                 <team_logo>
-//                   <size>medium</size>
-//                   <url>http://lookup.avatars.yahoo.com/images?yid=abehrens53&amp;size=medium&amp;type=jpg&amp;pty=3000</url>
-//                 </team_logo>
-//               </team_logos>
-//               <division_id>1</division_id>
-//               <faab_balance>0</faab_balance>
-//               <clinched_playoffs>1</clinched_playoffs>
-//               <managers>
-//                 <manager>
-//                   <manager_id>3</manager_id>
-//                   <nickname>-- hidden --</nickname>
-//                   <guid>E2KS77CDQPACRTSBCYPOFFW6AI</guid>
-//                 </manager>
-//               </managers>
-//               <team_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>101.94</total>
-//               </team_points>
-//               <team_projected_points>
-//                 <coverage_type>week</coverage_type>
-//                 <week>16</week>
-//                 <total>127.28</total>
-//               </team_projected_points>
-//             </team>
-//           </teams>
-//         </matchup>
-//       </matchups>
-//     </scoreboard>
-//   </league>
-// </fantasy_content>
+
+type ScoreBoardResource struct {
+	XMLName       xml.Name `xml:"scoreboard",json:"-"`
+	Week  string   `xml:"week",json:",omitempty"`
+	Matchups  []MatchupResource   `xml:"matchups>matchup",json:",omitempty"`
+}
+
+type MatchupResource struct {
+	XMLName       xml.Name `xml:"matchup",json:"-"`
+	Week  string   `xml:"week",json:",omitempty"`
+	Status  string   `xml:"status",json:",omitempty"`
+	IsTied  string   `xml:"is_tied",json:",omitempty"`
+	WinnerTeamKey  string   `xml:"winner_team_key",json:",omitempty"`
+	Teams  []TeamPointsResource   `xml:"teams>team",json:",omitempty"`
+}
+
+type TeamPointsResource struct {
+	XMLName       xml.Name `xml:"team_points",json:"-"`
+	CoverageType  string   `xml:"coverage_type",json:",omitempty"`
+	Week  string   `xml:"week",json:",omitempty"`
+	Total  string   `xml:"total",json:",omitempty"`
+}
+
+type TeamProjectedPointsResource struct {
+	XMLName       xml.Name `xml:"team_projected_points",json:"-"`
+	CoverageType  string   `xml:"coverage_type",json:",omitempty"`
+	Week  string   `xml:"week",json:",omitempty"`
+	Total  string   `xml:"total",json:",omitempty"`
+}
+
+func (y *YahooConfig) GetLeagueScoreboard(r *http.Request) *LeagueCollection {
+	session, err := y.SessionStore.Get(r, "session-name")
+	if err != nil {
+		log.Println(err.Error(), 500)
+		return nil
+	}
+
+	tok, ok := session.Values["token"].(*oauth2.Token)
+	if !ok {
+		log.Println("error deserializing token from session")
+		return nil
+	}
+	client := y.conf.Client(oauth2.NoContext, tok)
+
+	vars := mux.Vars(r)
+	league_keys := vars["league_keys"]
+	url := fmt.Sprintf("http://fantasysports.yahooapis.com/fantasy/v2/league/%s/scoreboard", league_keys)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	var leagueCollection LeagueCollection
+	if xml.Unmarshal(body, &leagueCollection); err != nil {
+		log.Fatal(err)
+	}
+	leagueCollection.Body = string(body)
+
+	return &leagueCollection
+}
+
 
 // Leagues collection
 //
@@ -1874,6 +1809,8 @@ type TeamResource struct {
 	RosterAdds            RosterAddsResource `xml:"roster_adds",json:",omitempty"`
 	LeageScoringType      string             `xml:"league_scoring_type",json:",omitempty"`
 	Managers              []ManagerResource `xml:"managers>manager",json:",omitempty"`
+	TeamPoints						TeamPointsResource 	`xml:"team_points",json:",omitempty"`
+	TeamProjectedPoints TeamProjectedPointsResource`xml:"team_projected_points",json:",omitempty"`
 }
 
 type TeamCollection struct {
